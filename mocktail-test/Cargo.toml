@@ -1,0 +1,24 @@
+[package]
+name = "mocktail-test"
+version = "0.1.0-alpha"
+edition = "2021"
+authors = ["Dan Clark", "Gaurav Kumbhat"]
+
+license = "Apache-2.0"
+repository = "https://github.com/IBM/mocktail"
+
+[dependencies]
+tokio = "1.43.0"
+tonic = "0.12.3"
+serde = { version = "1.0.217", features = ["derive"] }
+prost = "0.13.4"
+prost-types = "0.13.4"
+anyhow = "1.0.95"
+futures = "0.3.31"
+mocktail = { path = "../mocktail" }
+http = "1.1.0"
+reqwest = "0.12.12"
+eventsource-stream = "0.2.3"
+
+[build-dependencies]
+tonic-build = "0.12.3"
