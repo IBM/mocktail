@@ -46,6 +46,33 @@ mod tests {
                 ]),
             ),
         );
+        mocks.insert(
+            MockPath::new(Method::POST, "/example.Hello/HelloBidiStreaming"),
+            Mock::new(
+                MockRequest::pb_stream([
+                    HelloRequest {
+                        name: "Mateus".into(),
+                    },
+                    HelloRequest {
+                        name: "Paulo".into(),
+                    },
+                    HelloRequest {
+                        name: "Shonda".into(),
+                    },
+                ]),
+                MockResponse::pb_stream([
+                    HelloResponse {
+                        message: "Hello Mateus!".into(),
+                    },
+                    HelloResponse {
+                        message: "Hello Paulo!".into(),
+                    },
+                    HelloResponse {
+                        message: "Hello Shonda!".into(),
+                    },
+                ]),
+            ),
+        );
         let server = MockHelloServer::new(mocks)?;
         server.start().await?;
 
@@ -74,6 +101,27 @@ mod tests {
             })
             .await?;
         let mut stream = response.into_inner();
+        println!("server-streaming response:");
+        while let Some(Ok(message)) = stream.next().await {
+            println!("recv: {message:?}");
+        }
+
+        // Bidi-streaming
+        let response = client
+            .hello_bidi_streaming(stream::iter(vec![
+                HelloRequest {
+                    name: "Mateus".into(),
+                },
+                HelloRequest {
+                    name: "Paulo".into(),
+                },
+                HelloRequest {
+                    name: "Shonda".into(),
+                },
+            ]))
+            .await?;
+        let mut stream = response.into_inner();
+        println!("bidi-streaming response:");
         while let Some(Ok(message)) = stream.next().await {
             println!("recv: {message:?}");
         }
