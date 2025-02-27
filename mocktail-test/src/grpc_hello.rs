@@ -4,14 +4,56 @@ mod pb {
 
 #[cfg(test)]
 mod tests {
-    use super::pb::{hello_client::HelloClient, HelloRequest, HelloResponse};
-    use futures::{stream, StreamExt};
+    use std::time::Duration;
+
+    use futures::{StreamExt, stream};
     use mocktail::prelude::*;
+    use tokio_stream::wrappers::ReceiverStream;
     use tonic::transport::Channel;
+    use tracing::debug;
 
-    generate_grpc_server!("example.Hello", MockHelloServer);
+    use super::pb::{HelloRequest, HelloResponse, hello_client::HelloClient};
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
+    async fn test_hello_unary() -> Result<(), anyhow::Error> {
+        let mut mocks = MockSet::new();
+        mocks.insert(
+            MockPath::new(Method::POST, "/example.Hello/HelloUnary"),
+            Mock::new(
+                MockRequest::pb(HelloRequest { name: "Dan".into() }),
+                MockResponse::pb(HelloResponse {
+                    message: "Hello Dan!".into(),
+                }),
+            ),
+        );
+
+        let server = GrpcMockServer::new("example.Hello", mocks)?;
+        server.start().await?;
+
+        // Create client
+        let channel = Channel::from_shared(format!("http://0.0.0.0:{}", server.addr().port()))?
+            .connect()
+            .await?;
+        let mut client = HelloClient::new(channel);
+
+        let result = client
+            .hello_unary(HelloRequest { name: "Dan".into() })
+            .await;
+        dbg!(&result);
+        assert!(result.is_ok());
+
+        let result = client
+            .hello_unary(HelloRequest {
+                name: "NotFound1".into(),
+            })
+            .await;
+        dbg!(&result);
+        assert!(result.is_err_and(|e| e.code() == tonic::Code::NotFound));
+
+        Ok(())
+    }
+
+    #[test_log::test(tokio::test)]
     async fn test_hello_streaming() -> Result<(), anyhow::Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
@@ -73,7 +115,7 @@ mod tests {
                 ]),
             ),
         );
-        let server = MockHelloServer::new(mocks)?;
+        let server = GrpcMockServer::new("example.Hello", mocks)?;
         server.start().await?;
 
         // Create client
@@ -94,6 +136,20 @@ mod tests {
         dbg!(&result);
         assert!(result.is_ok());
 
+        // Client-streaming, should return error
+        let result = client
+            .hello_client_streaming(stream::iter(vec![
+                HelloRequest {
+                    name: "NotFound1".into(),
+                },
+                HelloRequest {
+                    name: "NotFound2".into(),
+                },
+            ]))
+            .await;
+        dbg!(&result);
+        assert!(result.is_err_and(|e| e.code() == tonic::Code::NotFound));
+
         // Server-streaming
         let response = client
             .hello_server_streaming(HelloRequest {
@@ -101,14 +157,23 @@ mod tests {
             })
             .await?;
         let mut stream = response.into_inner();
-        println!("server-streaming response:");
+        let mut responses = Vec::with_capacity(2);
         while let Some(Ok(message)) = stream.next().await {
-            println!("recv: {message:?}");
+            debug!("[server-streaming] recv: {message:?}");
+            responses.push(message);
         }
+        assert!(responses.len() == 2);
+        dbg!(&responses);
 
         // Bidi-streaming
-        let response = client
-            .hello_bidi_streaming(stream::iter(vec![
+        let (request_tx, request_rx) = tokio::sync::mpsc::channel(32);
+        let request_stream = ReceiverStream::new(request_rx);
+        let response = client.hello_bidi_streaming(request_stream).await?;
+        let mut stream = response.into_inner();
+        let mut responses = Vec::with_capacity(3);
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(3)).await;
+            for msg in [
                 HelloRequest {
                     name: "Mateus".into(),
                 },
@@ -118,13 +183,17 @@ mod tests {
                 HelloRequest {
                     name: "Shonda".into(),
                 },
-            ]))
-            .await?;
-        let mut stream = response.into_inner();
-        println!("bidi-streaming response:");
+            ] {
+                let _ = request_tx.send(msg).await;
+            }
+        });
+
         while let Some(Ok(message)) = stream.next().await {
-            println!("recv: {message:?}");
+            debug!("[bidi-streaming] recv: {message:?}");
+            responses.push(message);
         }
+        assert!(responses.len() == 3);
+        dbg!(&responses);
 
         Ok(())
     }

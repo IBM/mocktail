@@ -23,7 +23,6 @@ mocktail is a minimal framework for mocking HTTP and gRPC services in Rust with 
 A server that handles mock requests. This crate contains 2 servers:
 - HttpMockServer
 - GrpcMockServer 
-  - Not used directly, implementations are generated via `generate_grpc_server!` macro
 
 ## Mock Body
 An enum containing the bytes of a mock request or response body.
@@ -86,7 +85,7 @@ A set of mocks for a service.
 1. Add `mocktail` to `Cargo.toml` as a development dependency:
     ```toml
     [dev-dependencies]
-    mocktail = "0.1.0-alpha"
+    mocktail = { git = "https://github.com/IBM/mocktail.git", version = "0.1.1-alpha" }
     ```
 
 2. In a test context, use as follows. See [mocktail-test](/mocktail-test/) crate for more usage examples.

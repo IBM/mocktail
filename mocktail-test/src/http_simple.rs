@@ -2,8 +2,9 @@
 mod tests {
     use futures::StreamExt;
     use mocktail::prelude::*;
+    use tracing::debug;
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn test_simple_server_streaming() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
@@ -20,9 +21,12 @@ mod tests {
         let response = client.post(server.url("/server-stream")).send().await?;
         assert!(response.status() == StatusCode::OK);
         let mut stream = response.bytes_stream();
-        while let Some(Ok(chunk)) = stream.next().await {
-            println!("recv: {chunk:?}");
+        let mut responses = Vec::with_capacity(3);
+        while let Some(Ok(message)) = stream.next().await {
+            debug!("[server-streaming] recv: {message:?}");
+            responses.push(message);
         }
+        assert!(responses.len() == 3);
 
         Ok(())
     }
