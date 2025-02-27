@@ -47,6 +47,14 @@ impl MockBody {
             }
         }
     }
+
+    pub fn messages(&self) -> Vec<Bytes> {
+        match self {
+            MockBody::Empty => vec![],
+            MockBody::Full(bytes) => vec![bytes.clone()],
+            MockBody::Stream(items) => items.clone(),
+        }
+    }
 }
 
 impl PartialEq<[u8]> for MockBody {

@@ -12,11 +12,11 @@ pub struct HelloResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use mocktail::prelude::*;
 
-    #[tokio::test]
+    use super::*;
+
+    #[test_log::test(tokio::test)]
     async fn test_hello_simple() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(

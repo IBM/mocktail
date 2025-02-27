@@ -4,13 +4,12 @@ mod pb {
 
 #[cfg(test)]
 mod tests {
-    use super::pb::{health_client::HealthClient, HealthCheckRequest, HealthCheckResponse};
     use mocktail::prelude::*;
     use tonic::transport::Channel;
 
-    generate_grpc_server!("grpc.health.v1.Health", MockHealthServer);
+    use super::pb::{health_client::HealthClient, HealthCheckRequest, HealthCheckResponse};
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn test_health() -> Result<(), anyhow::Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
@@ -20,7 +19,7 @@ mod tests {
                 MockResponse::pb(HealthCheckResponse { status: 1 }),
             ),
         );
-        let server = MockHealthServer::new(mocks)?;
+        let server = GrpcMockServer::new("grpc.health.v1.Health", mocks)?;
         server.start().await?;
 
         // Create client

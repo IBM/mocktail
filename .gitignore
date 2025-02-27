@@ -2,3 +2,4 @@ target/
 debug/
 .DS_Store
 .idea
+.vscode

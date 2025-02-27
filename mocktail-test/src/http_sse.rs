@@ -3,9 +3,10 @@ mod tests {
     use eventsource_stream::{Event, Eventsource};
     use futures::StreamExt;
     use mocktail::prelude::*;
+    use tracing::debug;
 
-    #[tokio::test]
-    async fn test_sse_server_streaming() -> Result<(), Error> {
+    #[test_log::test(tokio::test)]
+    async fn test_sse_streaming() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
             MockPath::new(Method::POST, "/sse-stream"),
@@ -29,7 +30,7 @@ mod tests {
         let mut events: Vec<Event> = Vec::with_capacity(4);
         let mut stream = response.bytes_stream().eventsource();
         while let Some(Ok(event)) = stream.next().await {
-            println!("recv event[{}]: {}", event.event, event.data);
+            debug!("[sse-streaming] recv: {event:?}");
             events.push(event);
         }
         dbg!(&events);

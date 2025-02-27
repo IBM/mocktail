@@ -1,15 +1,16 @@
 #![doc = include_str!("../README.md")]
-pub mod codegen;
 pub mod mock;
 pub mod server;
 pub mod utils;
 pub mod prelude {
-    pub use crate::generate_grpc_server;
-    pub use crate::mock::{Mock, MockBody, MockPath, MockRequest, MockResponse, MockSet};
-    pub use crate::server::HttpMockServer;
-    pub use crate::utils::prost::MessageExt as _;
-    pub use crate::Error;
     pub use http::{HeaderMap, HeaderValue, Method, StatusCode};
+
+    pub use crate::{
+        mock::{Mock, MockBody, MockPath, MockRequest, MockResponse, MockSet},
+        server::{GrpcMockServer, HttpMockServer},
+        utils::prost::MessageExt as _,
+        Error,
+    };
 }
 
 #[derive(thiserror::Error, Debug)]

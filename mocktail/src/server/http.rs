@@ -1,7 +1,4 @@
-use std::future::Future;
-use std::pin::Pin;
-use std::time::Duration;
-use std::{net::SocketAddr, sync::Arc};
+use std::{future::Future, net::SocketAddr, pin::Pin, sync::Arc, time::Duration};
 
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Empty};
@@ -11,13 +8,12 @@ use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 use url::Url;
 
+use super::ServerState;
 use crate::{
     mock::{HyperBoxBody, MockPath, MockSet},
     utils::find_available_port,
     Error,
 };
-
-use super::ServerState;
 
 /// A mock HTTP server.
 pub struct HttpMockServer {
@@ -100,7 +96,8 @@ impl Service<Request<Incoming>> for HttpMockSvc {
         let state = self.state.clone();
         let fut = async move {
             let path: MockPath = (req.method().clone(), req.uri().path().to_string()).into();
-            debug!(?path, "handling http request");
+            let headers = req.headers();
+            debug!(?path, ?headers, "handling http request");
 
             // Collect request body
             let body = req.into_body().collect().await.unwrap().to_bytes();

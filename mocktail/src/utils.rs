@@ -67,9 +67,9 @@ pub mod prost {
 }
 
 pub fn find_available_port() -> Option<u16> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     loop {
-        let port: u16 = rng.gen_range(40000..60000);
+        let port: u16 = rng.random_range(40000..60000);
         if port_is_available(port) {
             return Some(port);
         }
@@ -78,4 +78,11 @@ pub fn find_available_port() -> Option<u16> {
 
 pub fn port_is_available(port: u16) -> bool {
     TcpListener::bind(("0.0.0.0", port)).is_ok()
+}
+
+pub fn has_content_type(headers: &http::HeaderMap, content_type: &str) -> bool {
+    let header = headers
+        .get(http::header::CONTENT_TYPE)
+        .map(|v| v.to_str().unwrap());
+    header.is_some_and(|value| value == content_type)
 }
