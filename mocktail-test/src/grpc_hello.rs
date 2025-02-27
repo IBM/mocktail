@@ -6,13 +6,13 @@ mod pb {
 mod tests {
     use std::time::Duration;
 
-    use futures::{StreamExt, stream};
+    use futures::{stream, StreamExt};
     use mocktail::prelude::*;
     use tokio_stream::wrappers::ReceiverStream;
     use tonic::transport::Channel;
     use tracing::debug;
 
-    use super::pb::{HelloRequest, HelloResponse, hello_client::HelloClient};
+    use super::pb::{hello_client::HelloClient, HelloRequest, HelloResponse};
 
     #[test_log::test(tokio::test)]
     async fn test_hello_unary() -> Result<(), anyhow::Error> {
@@ -24,6 +24,17 @@ mod tests {
                 MockResponse::pb(HelloResponse {
                     message: "Hello Dan!".into(),
                 }),
+            ),
+        );
+        mocks.insert(
+            MockPath::new(Method::POST, "/example.Hello/HelloUnary"),
+            Mock::new(
+                MockRequest::pb(HelloRequest {
+                    name: "InternalError".into(),
+                }),
+                MockResponse::empty()
+                    .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                    .with_message("woops"),
             ),
         );
 
@@ -44,11 +55,21 @@ mod tests {
 
         let result = client
             .hello_unary(HelloRequest {
-                name: "NotFound1".into(),
+                name: "NotFoundError".into(),
             })
             .await;
         dbg!(&result);
         assert!(result.is_err_and(|e| e.code() == tonic::Code::NotFound));
+
+        let result = client
+            .hello_unary(HelloRequest {
+                name: "InternalError".into(),
+            })
+            .await;
+        dbg!(&result);
+        assert!(
+            result.is_err_and(|e| { e.code() == tonic::Code::Internal && e.message() == "woops" })
+        );
 
         Ok(())
     }

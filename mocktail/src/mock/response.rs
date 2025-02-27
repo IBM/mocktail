@@ -10,7 +10,7 @@ pub struct MockResponse {
     pub code: http::StatusCode,
     pub headers: HeaderMap,
     pub body: MockBody,
-    pub error: Option<String>,
+    pub message: Option<String>,
 }
 
 impl MockResponse {
@@ -82,8 +82,8 @@ impl MockResponse {
         self
     }
 
-    pub fn with_error(mut self, error: String) -> Self {
-        self.error = Some(error);
+    pub fn with_message(mut self, message: impl Into<String>) -> Self {
+        self.message = Some(message.into());
         self
     }
 
@@ -99,7 +99,11 @@ impl MockResponse {
         &self.body
     }
 
-    pub fn error(&self) -> Option<&str> {
-        self.error.as_deref()
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
+    }
+
+    pub fn is_error(&self) -> bool {
+        !matches!(self.code(), http::StatusCode::OK)
     }
 }

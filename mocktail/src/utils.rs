@@ -20,8 +20,9 @@ pub mod tonic {
 
         fn from_http(status_code: http::StatusCode) -> tonic::Code {
             match status_code {
-                http::StatusCode::BAD_REQUEST | http::StatusCode::UNPROCESSABLE_ENTITY => {
-                    tonic::Code::Internal
+                http::StatusCode::INTERNAL_SERVER_ERROR => tonic::Code::Internal,
+                http::StatusCode::UNPROCESSABLE_ENTITY | http::StatusCode::BAD_REQUEST => {
+                    tonic::Code::InvalidArgument
                 }
                 http::StatusCode::UNAUTHORIZED => tonic::Code::Unauthenticated,
                 http::StatusCode::FORBIDDEN => tonic::Code::PermissionDenied,
