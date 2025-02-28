@@ -22,8 +22,8 @@ mod tests {
         mocks.insert(
             MockPath::post("/hello"),
             Mock::new(
-                MockRequest::json(HelloRequest { name: "Dan".into() }),
-                MockResponse::json(HelloResponse {
+                MockRequest::new(HelloRequest { name: "Dan".into() }),
+                MockResponse::new(HelloResponse {
                     message: "Hello Dan!".into(),
                 }),
             ),

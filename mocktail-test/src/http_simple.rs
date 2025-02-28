@@ -2,6 +2,7 @@
 mod tests {
     use futures::StreamExt;
     use mocktail::prelude::*;
+    use serde_json::json;
     use tracing::debug;
 
     #[test_log::test(tokio::test)]
@@ -11,7 +12,11 @@ mod tests {
             MockPath::post("/server-stream"),
             Mock::new(
                 MockRequest::empty(),
-                MockResponse::stream(["msg1", "msg2", "msg3"]),
+                MockResponse::stream([
+                    json!({"message": "1"}),
+                    json!({"message": "2"}),
+                    json!({"message": "3"}),
+                ]),
             ),
         );
         let server = HttpMockServer::new("simple", mocks)?;

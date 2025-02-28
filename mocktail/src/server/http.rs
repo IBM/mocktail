@@ -108,8 +108,7 @@ impl Service<Request<Incoming>> for HttpMockSvc {
                     .status(mock.response.code())
                     .body(mock.response.body().to_hyper_boxed())
                     .unwrap();
-                *response.headers_mut() = mock.response.headers().clone();
-                // TODO: error message
+                *response.headers_mut() = mock.response.headers().clone().into();
                 Ok(response)
             } else {
                 // Request not matched to mock, send error response

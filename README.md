@@ -24,52 +24,37 @@ A server that handles mock requests. This crate contains 2 servers:
 - HttpMockServer
 - GrpcMockServer 
 
-## Mock Body
-An enum containing the bytes of a mock request or response body.
-
-```rust
-pub enum MockBody {
-    Empty,
-    Full(Bytes),
-    Stream(Vec<Bytes>),
-}
-```
-
 ## Mock Request
 A mock request containing an optional body and optional headers.
 
 ```rust
-// An empty body
+// With an empty body
 MockRequest::empty()
-// With a body that implements `Into<Bytes>`
+
+// With a body that implements `serde::Serialize` (for HTTP) or `prost::Message` (for gRPC)
 MockRequest::new(body)
+// alt: MockRequest::full(body)
+
+// With an iterator of messages that implement `serde::Serialize` (for HTTP) or `prost::Message` (for gRPC)
 MockRequest::stream(messages)
-// Convenience constructors:
-// JSON: with a body that implements `serde::Serialize`
-MockRequest::json(body)
-MockRequest::json_stream(messages)
-// Protobuf (gRPC): with a body that implements `prost::Message`
-MockRequest::pb(body)
-MockRequest::pb_stream(messages)
 ```
 
 ## Mock Response
-
 A mock response containing a response code, optional body, optional headers, and optional error message. The response code defaults to `200`.
 
 ```rust
-// An empty body
+// With an empty body
 MockResponse::empty()
-// With a body that implements `Into<Bytes>`
+
+// With a body that implements `serde::Serialize` (for HTTP) or `prost::Message` (for gRPC)
 MockResponse::new(body)
+// alt: MockRequest::full(body)
+
+// With an iterator of messages that implement `serde::Serialize` (for HTTP) or `prost::Message` (for gRPC)
 MockResponse::stream(messages)
-// Convenience constructors:
-// JSON: with a body that implements `serde::Serialize`
-MockResponse::json(body)
-MockResponse::json_stream(messages)
-// Protobuf (gRPC): with a body that implements `prost::Message`
-MockResponse::pb(body)
-MockResponse::pb_stream(messages)
+
+// With an iterator of [`Event`] messages.
+MockResponse::sse_stream(messages)
 ```
 
 ## Mock
@@ -88,74 +73,8 @@ A set of mocks for a service.
     mocktail = { git = "https://github.com/IBM/mocktail.git", version = "0.1.1-alpha" }
     ```
 
-2. In a test context, use as follows. See [mocktail-test](/mocktail-test/) crate for more usage examples.
+2. See [mocktail-test](/mocktail-test/) crate for usage examples.
 
-    ```rust
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct HelloRequest {
-        pub name: String,
-    }
-
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct HelloResponse {
-        pub message: String,
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        use mocktail::prelude::*;
-
-        #[tokio::test]
-        async fn test_hello_simple() -> Result<(), Box<dyn std::error::Error>> {
-            // Create a mock set.
-            let mut mocks = MockSet::new();
-            // Insert mocks.
-            // `MockRequest::json()` and `MockResponse::json()` are convenience methods 
-            // that handle JSON serialization to avoid `serde_json::to_vec(&value)` boilerplate.
-            mocks.insert(
-                MockPath::new(Method::POST, "/hello"),
-                Mock::new(
-                    MockRequest::json(HelloRequest { name: "World".into() }),
-                    MockResponse::json(HelloResponse {
-                        message: "Hello World!".into(),
-                    }),
-                ),
-            );
-            // Create and start a mock server.
-            let server = HttpMockServer::new("hello", mocks)?;
-            server.start().await?;
-
-            // Send request to mock server.
-            let client = reqwest::Client::new();
-            let response = client
-                .post(server.url("/hello"))
-                .json(&HelloRequest { name: "World".into() })
-                .send()
-                .await?;
-            assert!(response.status() == StatusCode::OK);
-            let body = response.json::<HelloResponse>().await?;
-            dbg!(&body);
-
-            // Send request to mock server. 
-            // Doesn't match a mock so should return an error.
-            let client = reqwest::Client::new();
-            let response = client
-                .post(server.url("/hello"))
-                .json(&HelloRequest {
-                    name: "Missing".into(),
-                })
-                .send()
-                .await?;
-            assert!(response.status() == StatusCode::NOT_FOUND);
-
-            Ok(())
-        }
-    }
-    ```
 
 # Examples
 See [mocktail-test](/mocktail-test/) crate.

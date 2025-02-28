@@ -6,9 +6,8 @@ pub mod prelude {
     pub use http::{HeaderMap, HeaderValue, Method, StatusCode};
 
     pub use crate::{
-        mock::{Mock, MockBody, MockPath, MockRequest, MockResponse, MockSet},
+        mock::*,
         server::{GrpcMockServer, HttpMockServer},
-        utils::prost::MessageExt as _,
         Error,
     };
 }

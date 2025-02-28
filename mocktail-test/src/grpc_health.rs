@@ -15,8 +15,8 @@ mod tests {
         mocks.insert(
             MockPath::post("/grpc.health.v1.Health/Check"),
             Mock::new(
-                MockRequest::pb(HealthCheckRequest { service: "".into() }),
-                MockResponse::pb(HealthCheckResponse { status: 1 }),
+                MockRequest::new(HealthCheckRequest { service: "".into() }),
+                MockResponse::new(HealthCheckResponse { status: 1 }),
             ),
         );
         let server = GrpcMockServer::new("grpc.health.v1.Health", mocks)?;

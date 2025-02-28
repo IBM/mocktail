@@ -1,81 +1,49 @@
-use bytes::Bytes;
-use http::HeaderMap;
-
-use super::MockBody;
-use crate::utils::prost::MessageExt;
+use super::{body::ToBytes, Headers, MockBody};
 
 /// A mock request.
 #[derive(Default, Debug, Clone)]
 pub struct MockRequest {
-    pub headers: HeaderMap,
+    pub headers: Headers,
     pub body: MockBody,
 }
 
 impl MockRequest {
     pub fn empty() -> Self {
-        Self {
-            body: MockBody::Empty,
-            ..Default::default()
-        }
+        Self::default()
     }
 
-    pub fn new(body: impl Into<Bytes>) -> Self {
+    pub fn new<T>(body: impl ToBytes<T>) -> Self {
         Self::full(body)
     }
 
-    pub fn full(body: impl Into<Bytes>) -> Self {
-        Self {
-            body: MockBody::Full(body.into()),
-            ..Default::default()
-        }
-    }
-
-    pub fn stream(messages: impl IntoIterator<Item = impl Into<Bytes>>) -> Self {
-        Self {
-            body: MockBody::Stream(messages.into_iter().map(|msg| msg.into()).collect()),
-            ..Default::default()
-        }
-    }
-
-    pub fn json(body: impl serde::Serialize) -> Self {
-        Self {
-            body: MockBody::Full(serde_json::to_vec(&body).unwrap().into()),
-            ..Default::default()
-        }
-    }
-
-    pub fn json_stream(messages: impl IntoIterator<Item = impl serde::Serialize>) -> Self {
-        Self {
-            body: MockBody::Stream(
-                messages
-                    .into_iter()
-                    .map(|msg| serde_json::to_vec(&msg).unwrap().into())
-                    .collect(),
-            ),
-            ..Default::default()
-        }
-    }
-
-    pub fn pb(body: impl prost::Message) -> Self {
+    pub fn full<T>(body: impl ToBytes<T>) -> Self {
         Self {
             body: MockBody::Full(body.to_bytes()),
             ..Default::default()
         }
     }
 
-    pub fn pb_stream(messages: impl IntoIterator<Item = impl prost::Message>) -> Self {
+    pub fn stream<T>(messages: impl IntoIterator<Item = impl ToBytes<T>>) -> Self {
         Self {
-            body: MockBody::Stream(messages.into_iter().map(|msg| msg.to_bytes()).collect()),
+            body: MockBody::Stream(
+                messages
+                    .into_iter()
+                    .map(|message| message.to_bytes())
+                    .collect(),
+            ),
             ..Default::default()
         }
     }
 
-    pub fn with_headers(mut self, headers: HeaderMap) -> Self {
-        self.headers = headers;
+    pub fn with_headers(
+        mut self,
+        headers: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>,
+    ) -> Self {
+        self.headers = Headers::new(headers);
         self
     }
 
-    pub fn headers(&self) -> &HeaderMap {
+    pub fn headers(&self) -> &Headers {
         &self.headers
     }
 

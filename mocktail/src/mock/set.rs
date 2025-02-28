@@ -1,7 +1,6 @@
 use std::collections::{hash_map, HashMap};
 
-use super::Mock;
-use crate::utils::HeaderMapExt;
+use super::{Headers, Mock};
 
 /// A set of mocks for a service.
 #[derive(Default, Debug, Clone)]
@@ -45,7 +44,7 @@ impl MockSet {
         &self,
         path: &MockPath,
         body: &[u8],
-        headers: &http::HeaderMap,
+        headers: &Headers,
     ) -> Option<&Mock> {
         // `headers` must be a superset of `mock.request.headers`,
         if let Some(mock) = self.match_by_body(path, body) {

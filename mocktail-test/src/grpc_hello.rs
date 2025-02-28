@@ -20,8 +20,8 @@ mod tests {
         mocks.insert(
             MockPath::post("/example.Hello/HelloUnary"),
             Mock::new(
-                MockRequest::pb(HelloRequest { name: "Dan".into() }),
-                MockResponse::pb(HelloResponse {
+                MockRequest::new(HelloRequest { name: "Dan".into() }),
+                MockResponse::new(HelloResponse {
                     message: "Hello Dan!".into(),
                 }),
             ),
@@ -29,29 +29,25 @@ mod tests {
         mocks.insert(
             MockPath::post("/example.Hello/HelloUnary"),
             Mock::new(
-                MockRequest::pb(HelloRequest {
+                MockRequest::new(HelloRequest {
                     name: "InternalError".into(),
                 }),
-                MockResponse::empty()
-                    .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-                    .with_message("woops"),
+                MockResponse::empty().with_code(500).with_message("woops"),
+                // alt: MockResponse::empty().with_error(500, "woops"),
             ),
         );
-        // mocks.insert(
-        //     MockPath::post("/example.Hello/HelloUnary"),
-        //     Mock::new(
-        //         MockRequest::pb(HelloRequest {
-        //             name: "Header".into(),
-        //         })
-        //         .with_headers(HeaderMap::from_iter([(
-        //             HeaderName::from_static("some-header"),
-        //             HeaderValue::from_static(":D"),
-        //         )])),
-        //         MockResponse::pb(HelloResponse {
-        //             message: "Hello Header!".into(),
-        //         }),
-        //     ),
-        // );
+        mocks.insert(
+            MockPath::post("/example.Hello/HelloUnary"),
+            Mock::new(
+                MockRequest::new(HelloRequest {
+                    name: "Header".into(),
+                })
+                .with_headers([("some-header", "value")]),
+                MockResponse::new(HelloResponse {
+                    message: "Hello Header!".into(),
+                }),
+            ),
+        );
 
         let server = GrpcMockServer::new("example.Hello", mocks)?;
         server.start().await?;
@@ -75,7 +71,7 @@ mod tests {
         // let mut request = tonic::Request::new(HelloRequest { name: "Dan".into() });
         // request
         //     .metadata_mut()
-        //     .insert("some-header", ":D".parse().unwrap());
+        //     .insert("some-header", "value".parse().unwrap());
         // let result = client.hello_unary(request).await;
         // dbg!(&result);
         // assert!(result.is_ok());
@@ -110,13 +106,12 @@ mod tests {
             MockPath::post("/example.Hello/HelloClientStreaming"),
             Mock::new(
                 MockRequest::stream([
-                    HelloRequest { name: "Dan".into() }.to_bytes(),
+                    HelloRequest { name: "Dan".into() },
                     HelloRequest {
                         name: "Gaurav".into(),
-                    }
-                    .to_bytes(),
+                    },
                 ]),
-                MockResponse::pb(HelloResponse {
+                MockResponse::new(HelloResponse {
                     message: "Hello Dan, Gaurav!".into(),
                 }),
             ),
@@ -124,11 +119,10 @@ mod tests {
         mocks.insert(
             MockPath::post("/example.Hello/HelloServerStreaming"),
             Mock::new(
-                MockRequest::pb(HelloRequest {
+                MockRequest::new(HelloRequest {
                     name: "Dan, Gaurav".into(),
                 }),
-                // This example uses MockRequest::pb_stream convenience method
-                MockResponse::pb_stream([
+                MockResponse::stream([
                     HelloResponse {
                         message: "Hello Dan!".into(),
                     },
@@ -141,7 +135,7 @@ mod tests {
         mocks.insert(
             MockPath::post("/example.Hello/HelloBidiStreaming"),
             Mock::new(
-                MockRequest::pb_stream([
+                MockRequest::stream([
                     HelloRequest {
                         name: "Mateus".into(),
                     },
@@ -152,7 +146,7 @@ mod tests {
                         name: "Shonda".into(),
                     },
                 ]),
-                MockResponse::pb_stream([
+                MockResponse::stream([
                     HelloResponse {
                         message: "Hello Mateus!".into(),
                     },
