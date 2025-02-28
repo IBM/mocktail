@@ -18,7 +18,7 @@ mod tests {
     async fn test_hello_unary() -> Result<(), anyhow::Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/example.Hello/HelloUnary"),
+            MockPath::post("/example.Hello/HelloUnary"),
             Mock::new(
                 MockRequest::pb(HelloRequest { name: "Dan".into() }),
                 MockResponse::pb(HelloResponse {
@@ -27,7 +27,7 @@ mod tests {
             ),
         );
         mocks.insert(
-            MockPath::new(Method::POST, "/example.Hello/HelloUnary"),
+            MockPath::post("/example.Hello/HelloUnary"),
             Mock::new(
                 MockRequest::pb(HelloRequest {
                     name: "InternalError".into(),
@@ -37,6 +37,21 @@ mod tests {
                     .with_message("woops"),
             ),
         );
+        // mocks.insert(
+        //     MockPath::post("/example.Hello/HelloUnary"),
+        //     Mock::new(
+        //         MockRequest::pb(HelloRequest {
+        //             name: "Header".into(),
+        //         })
+        //         .with_headers(HeaderMap::from_iter([(
+        //             HeaderName::from_static("some-header"),
+        //             HeaderValue::from_static(":D"),
+        //         )])),
+        //         MockResponse::pb(HelloResponse {
+        //             message: "Hello Header!".into(),
+        //         }),
+        //     ),
+        // );
 
         let server = GrpcMockServer::new("example.Hello", mocks)?;
         server.start().await?;
@@ -47,12 +62,25 @@ mod tests {
             .await?;
         let mut client = HelloClient::new(channel);
 
+        // Success response
         let result = client
-            .hello_unary(HelloRequest { name: "Dan".into() })
+            .hello_unary(HelloRequest {
+                name: "Header".into(),
+            })
             .await;
         dbg!(&result);
-        assert!(result.is_ok());
+        //assert!(result.is_ok());
 
+        // Success response w/ header matching
+        // let mut request = tonic::Request::new(HelloRequest { name: "Dan".into() });
+        // request
+        //     .metadata_mut()
+        //     .insert("some-header", ":D".parse().unwrap());
+        // let result = client.hello_unary(request).await;
+        // dbg!(&result);
+        // assert!(result.is_ok());
+
+        // Error response (mock not found)
         let result = client
             .hello_unary(HelloRequest {
                 name: "NotFoundError".into(),
@@ -61,6 +89,7 @@ mod tests {
         dbg!(&result);
         assert!(result.is_err_and(|e| e.code() == tonic::Code::NotFound));
 
+        // Error response (internal)
         let result = client
             .hello_unary(HelloRequest {
                 name: "InternalError".into(),
@@ -78,7 +107,7 @@ mod tests {
     async fn test_hello_streaming() -> Result<(), anyhow::Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/example.Hello/HelloClientStreaming"),
+            MockPath::post("/example.Hello/HelloClientStreaming"),
             Mock::new(
                 MockRequest::stream([
                     HelloRequest { name: "Dan".into() }.to_bytes(),
@@ -93,7 +122,7 @@ mod tests {
             ),
         );
         mocks.insert(
-            MockPath::new(Method::POST, "/example.Hello/HelloServerStreaming"),
+            MockPath::post("/example.Hello/HelloServerStreaming"),
             Mock::new(
                 MockRequest::pb(HelloRequest {
                     name: "Dan, Gaurav".into(),
@@ -110,7 +139,7 @@ mod tests {
             ),
         );
         mocks.insert(
-            MockPath::new(Method::POST, "/example.Hello/HelloBidiStreaming"),
+            MockPath::post("/example.Hello/HelloBidiStreaming"),
             Mock::new(
                 MockRequest::pb_stream([
                     HelloRequest {

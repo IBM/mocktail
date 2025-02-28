@@ -20,7 +20,7 @@ mod tests {
     async fn test_hello_simple() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/hello"),
+            MockPath::post("/hello"),
             Mock::new(
                 MockRequest::json(HelloRequest { name: "Dan".into() }),
                 MockResponse::json(HelloResponse {

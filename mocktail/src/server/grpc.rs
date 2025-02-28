@@ -101,11 +101,11 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
     fn call(&self, req: Request<Incoming>) -> Self::Future {
         let state = self.state.clone();
         let fut = async move {
-            let path: MockPath = (req.method().clone(), req.uri().path().to_string()).into();
-            let headers = req.headers();
-            debug!(?path, ?headers, "handling grpc request");
+            let path = MockPath::from_request(&req);
+            // let headers = req.headers().clone();
+            debug!(?path, "handling grpc request");
 
-            if !has_content_type(headers, "application/grpc") {
+            if !has_content_type(req.headers(), "application/grpc") {
                 let response = Response::builder()
                     .header("content-type", "application/grpc")
                     .header("grpc-status", tonic::Code::InvalidArgument as i32)
@@ -140,7 +140,7 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
                     buf.extend(chunk);
                     // Attempt to match buffered data to mock
                     let body = buf.clone().freeze();
-                    if let Some(mock) = state.mocks.find(&path, &body) {
+                    if let Some(mock) = state.mocks.match_by_body(&path, &body) {
                         matched = true;
                         // A matching mock has been found, send response
                         debug!("mock found, sending response");
@@ -166,6 +166,7 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
                 debug!("request stream closed");
                 if !matched {
                     debug!("no mocks found, sending error");
+                    dbg!(&state.mocks);
                     let mut trailers = HeaderMap::new();
                     trailers.insert("grpc-status", (tonic::Code::NotFound as i32).into());
                     trailers.insert("grpc-message", HeaderValue::from_static("mock not found"));
