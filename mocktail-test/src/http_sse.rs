@@ -9,7 +9,7 @@ mod tests {
     async fn test_sse_streaming() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/sse-stream"),
+            MockPath::post("/sse-stream"),
             Mock::new(
                 MockRequest::empty(),
                 MockResponse::stream([

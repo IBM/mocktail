@@ -8,7 +8,7 @@ mod tests {
     async fn test_simple_server_streaming() -> Result<(), Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/server-stream"),
+            MockPath::post("/server-stream"),
             Mock::new(
                 MockRequest::empty(),
                 MockResponse::stream(["msg1", "msg2", "msg3"]),

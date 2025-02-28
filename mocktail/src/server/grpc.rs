@@ -1,8 +1,8 @@
 use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
 
 use bytes::{Bytes, BytesMut};
-use futures::{StreamExt, future::BoxFuture};
-use http::{HeaderMap, Request, Response};
+use futures::{future::BoxFuture, StreamExt};
+use http::{HeaderMap, HeaderValue, Request, Response};
 use http_body::Frame;
 use http_body_util::{BodyExt, StreamBody};
 use hyper::{body::Incoming, server::conn::http2, service::Service};
@@ -14,9 +14,9 @@ use url::Url;
 
 use super::ServerState;
 use crate::{
-    Error,
     mock::{MockPath, MockSet, TonicBoxBody},
-    utils::{find_available_port, has_content_type},
+    utils::{find_available_port, has_content_type, tonic::CodeExt},
+    Error,
 };
 
 /// A mock gRPC server.
@@ -101,14 +101,15 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
     fn call(&self, req: Request<Incoming>) -> Self::Future {
         let state = self.state.clone();
         let fut = async move {
-            let path: MockPath = (req.method().clone(), req.uri().path().to_string()).into();
-            let headers = req.headers();
-            debug!(?path, ?headers, "handling grpc request");
+            let path = MockPath::from_request(&req);
+            // let headers = req.headers().clone();
+            debug!(?path, "handling grpc request");
 
-            if !has_content_type(headers, "application/grpc") {
+            if !has_content_type(req.headers(), "application/grpc") {
                 let response = Response::builder()
                     .header("content-type", "application/grpc")
                     .header("grpc-status", tonic::Code::InvalidArgument as i32)
+                    .header("grpc-message", "invalid content-type")
                     .body(tonic::body::empty_body())
                     .unwrap();
                 return Ok(response);
@@ -121,7 +122,7 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
             let (response_tx, response_rx) =
                 mpsc::channel::<Result<Frame<Bytes>, tonic::Status>>(32);
 
-            // Create response wrapping response stream
+            // Create response
             let response_body =
                 TonicBoxBody::new(StreamBody::new(ReceiverStream::new(response_rx)));
             let response = Response::builder()
@@ -133,27 +134,42 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
             tokio::spawn(async move {
                 // Consume request stream
                 let mut buf = BytesMut::new();
-                let mut sent = 0u32;
+                let mut matched = false;
                 while let Some(Ok(chunk)) = stream.next().await {
                     debug!(?chunk, "received chunk");
                     buf.extend(chunk);
                     // Attempt to match buffered data to mock
                     let body = buf.clone().freeze();
-                    if let Some(mock) = state.mocks.find(&path, &body) {
-                        // A matching mock has been found, send response data
+                    if let Some(mock) = state.mocks.match_by_body(&path, &body) {
+                        matched = true;
+                        // A matching mock has been found, send response
                         debug!("mock found, sending response");
-                        for data in mock.response.body().messages() {
-                            let _ = response_tx.send(Ok(Frame::data(data))).await;
-                            sent += 1;
+                        if mock.response.is_error() {
+                            let grpc_code = tonic::Code::from_http(mock.response.code());
+                            let mut trailers = HeaderMap::new();
+                            trailers.insert("grpc-status", (grpc_code as i32).into());
+                            if let Some(message) = mock.response.message() {
+                                trailers.insert(
+                                    "grpc-message",
+                                    HeaderValue::from_str(message).unwrap(),
+                                );
+                            }
+                            let _ = response_tx.send(Ok(Frame::trailers(trailers))).await;
+                        } else {
+                            for chunk in mock.response.body().chunks() {
+                                let _ = response_tx.send(Ok(Frame::data(chunk))).await;
+                            }
                         }
                         buf.clear();
                     }
                 }
                 debug!("request stream closed");
-                if sent == 0 {
+                if !matched {
                     debug!("no mocks found, sending error");
+                    dbg!(&state.mocks);
                     let mut trailers = HeaderMap::new();
                     trailers.insert("grpc-status", (tonic::Code::NotFound as i32).into());
+                    trailers.insert("grpc-message", HeaderValue::from_static("mock not found"));
                     let _ = response_tx.send(Ok(Frame::trailers(trailers))).await;
                 }
             });

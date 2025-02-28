@@ -1,11 +1,8 @@
 mod body;
 pub use body::{HyperBoxBody, MockBody, TonicBoxBody};
 
-mod path;
-pub use path::MockPath;
-
 mod set;
-pub use set::MockSet;
+pub use set::{MockPath, MockSet};
 
 mod request;
 pub use request::MockRequest;

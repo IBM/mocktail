@@ -13,7 +13,7 @@ mod tests {
     async fn test_health() -> Result<(), anyhow::Error> {
         let mut mocks = MockSet::new();
         mocks.insert(
-            MockPath::new(Method::POST, "/grpc.health.v1.Health/Check"),
+            MockPath::post("/grpc.health.v1.Health/Check"),
             Mock::new(
                 MockRequest::pb(HealthCheckRequest { service: "".into() }),
                 MockResponse::pb(HealthCheckResponse { status: 1 }),

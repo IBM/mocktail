@@ -1,5 +1,6 @@
 use std::net::TcpListener;
 
+use http::{header, HeaderMap, HeaderName, HeaderValue};
 use rand::Rng;
 
 pub mod tonic {
@@ -20,8 +21,9 @@ pub mod tonic {
 
         fn from_http(status_code: http::StatusCode) -> tonic::Code {
             match status_code {
-                http::StatusCode::BAD_REQUEST | http::StatusCode::UNPROCESSABLE_ENTITY => {
-                    tonic::Code::Internal
+                http::StatusCode::INTERNAL_SERVER_ERROR => tonic::Code::Internal,
+                http::StatusCode::UNPROCESSABLE_ENTITY | http::StatusCode::BAD_REQUEST => {
+                    tonic::Code::InvalidArgument
                 }
                 http::StatusCode::UNAUTHORIZED => tonic::Code::Unauthenticated,
                 http::StatusCode::FORBIDDEN => tonic::Code::PermissionDenied,
@@ -66,6 +68,33 @@ pub mod prost {
     }
 }
 
+pub trait HeaderMapExt<T = HeaderValue> {
+    /// Returns `true` if the map contains a key-value pair.
+    fn contains(&self, key: &HeaderName, value: &HeaderValue) -> bool;
+
+    /// Returns `true` if the map is a subset of another,
+    /// i.e., `other` contains at least all the values in `self`.
+    fn is_subset(&self, other: &HeaderMap<T>) -> bool;
+
+    /// Returns `true` if the map is a superset of another,
+    /// i.e., `self` contains at least all the values in `other`.
+    fn is_superset(&self, other: &HeaderMap<T>) -> bool;
+}
+
+impl HeaderMapExt<HeaderValue> for HeaderMap<HeaderValue> {
+    fn contains(&self, key: &HeaderName, value: &HeaderValue) -> bool {
+        self.iter().any(|entry| entry.0 == key && entry.1 == value)
+    }
+
+    fn is_subset(&self, other: &HeaderMap<HeaderValue>) -> bool {
+        self.iter().all(|(key, value)| other.contains(key, value))
+    }
+
+    fn is_superset(&self, other: &HeaderMap<HeaderValue>) -> bool {
+        other.is_subset(self)
+    }
+}
+
 pub fn find_available_port() -> Option<u16> {
     let mut rng = rand::rng();
     loop {
@@ -80,9 +109,9 @@ pub fn port_is_available(port: u16) -> bool {
     TcpListener::bind(("0.0.0.0", port)).is_ok()
 }
 
-pub fn has_content_type(headers: &http::HeaderMap, content_type: &str) -> bool {
+pub fn has_content_type(headers: &HeaderMap, content_type: &str) -> bool {
     let header = headers
-        .get(http::header::CONTENT_TYPE)
+        .get(header::CONTENT_TYPE)
         .map(|v| v.to_str().unwrap());
     header.is_some_and(|value| value == content_type)
 }

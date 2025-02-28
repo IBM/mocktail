@@ -95,15 +95,15 @@ impl Service<Request<Incoming>> for HttpMockSvc {
     fn call(&self, req: Request<Incoming>) -> Self::Future {
         let state = self.state.clone();
         let fut = async move {
-            let path: MockPath = (req.method().clone(), req.uri().path().to_string()).into();
-            let headers = req.headers();
-            debug!(?path, ?headers, "handling http request");
+            let path = MockPath::from_request(&req);
+            // let headers = req.headers().clone();
+            debug!(?path, "handling http request");
 
             // Collect request body
             let body = req.into_body().collect().await.unwrap().to_bytes();
 
             // Match to mock and send response
-            if let Some(mock) = state.mocks.find(&path, &body) {
+            if let Some(mock) = state.mocks.match_by_body(&path, &body) {
                 let mut response = Response::builder()
                     .status(mock.response.code())
                     .body(mock.response.body().to_hyper_boxed())

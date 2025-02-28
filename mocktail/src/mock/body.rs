@@ -16,43 +16,40 @@ pub enum MockBody {
 }
 
 impl MockBody {
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            MockBody::Empty => 0,
+            MockBody::Full(chunk) => chunk.len(),
+            MockBody::Stream(chunks) => chunks.iter().map(|chunk| chunk.len()).sum(),
+        }
+    }
+
+    pub fn chunks(&self) -> Vec<Bytes> {
+        match self {
+            MockBody::Empty => vec![],
+            MockBody::Full(chunk) => vec![chunk.clone()],
+            MockBody::Stream(chunks) => chunks.clone(),
+        }
+    }
+
     /// Returns a type-erased HTTP body for hyper.
     pub fn to_hyper_boxed(&self) -> HyperBoxBody {
         match self {
             MockBody::Empty => Empty::new().map_err(|err| match err {}).boxed(),
-            MockBody::Full(data) => Full::new(data.clone())
+            MockBody::Full(chunk) => Full::new(chunk.clone())
                 .map_err(|never| match never {})
                 .boxed(),
-            MockBody::Stream(data) => {
-                let messages: Vec<Result<_, hyper::Error>> = data
+            MockBody::Stream(chunks) => {
+                let messages: Vec<Result<_, hyper::Error>> = chunks
                     .iter()
-                    .map(|message| Ok(Frame::data(message.clone())))
+                    .map(|chunk| Ok(Frame::data(chunk.clone())))
                     .collect();
                 HyperBoxBody::new(StreamBody::new(stream::iter(messages)))
             }
-        }
-    }
-
-    /// Returns a type-erased HTTP body for tonic.
-    pub fn to_tonic_boxed(&self) -> TonicBoxBody {
-        match self {
-            MockBody::Empty => tonic::body::empty_body(),
-            MockBody::Full(data) => tonic::body::boxed(Full::new(data.clone())),
-            MockBody::Stream(data) => {
-                let messages: Vec<Result<_, tonic::Status>> = data
-                    .iter()
-                    .map(|message| Ok(Frame::data(message.clone())))
-                    .collect();
-                TonicBoxBody::new(StreamBody::new(stream::iter(messages)))
-            }
-        }
-    }
-
-    pub fn messages(&self) -> Vec<Bytes> {
-        match self {
-            MockBody::Empty => vec![],
-            MockBody::Full(bytes) => vec![bytes.clone()],
-            MockBody::Stream(items) => items.clone(),
         }
     }
 }
