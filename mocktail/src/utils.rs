@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use http::{header, HeaderMap, HeaderName, HeaderValue};
+use http::{header, HeaderMap};
 use rand::Rng;
 
 pub mod tonic {
@@ -65,33 +65,6 @@ pub mod prost {
             }
             buf.freeze()
         }
-    }
-}
-
-pub trait HeaderMapExt<T = HeaderValue> {
-    /// Returns `true` if the map contains a key-value pair.
-    fn contains(&self, key: &HeaderName, value: &HeaderValue) -> bool;
-
-    /// Returns `true` if the map is a subset of another,
-    /// i.e., `other` contains at least all the values in `self`.
-    fn is_subset(&self, other: &HeaderMap<T>) -> bool;
-
-    /// Returns `true` if the map is a superset of another,
-    /// i.e., `self` contains at least all the values in `other`.
-    fn is_superset(&self, other: &HeaderMap<T>) -> bool;
-}
-
-impl HeaderMapExt<HeaderValue> for HeaderMap<HeaderValue> {
-    fn contains(&self, key: &HeaderName, value: &HeaderValue) -> bool {
-        self.iter().any(|entry| entry.0 == key && entry.1 == value)
-    }
-
-    fn is_subset(&self, other: &HeaderMap<HeaderValue>) -> bool {
-        self.iter().all(|(key, value)| other.contains(key, value))
-    }
-
-    fn is_superset(&self, other: &HeaderMap<HeaderValue>) -> bool {
-        other.is_subset(self)
     }
 }
 

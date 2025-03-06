@@ -1,16 +1,25 @@
 use std::collections::{hash_map, HashMap};
 
 use super::Mock;
-use crate::utils::HeaderMapExt;
 
 /// A set of mocks for a service.
 #[derive(Default, Debug, Clone)]
 pub struct MockSet(HashMap<MockPath, Vec<Mock>>);
 
 impl MockSet {
-    /// Creates a empty [`MockSet`].
+    /// Creates an empty mockset.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Returns the number of entries in the mockset.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns true if the mockset contains no entries.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     /// Inserts a [`Mock`].
@@ -23,6 +32,21 @@ impl MockSet {
                 entry.insert(vec![mock]);
             }
         }
+    }
+
+    /// Gets an entry for in-place manipulation.
+    pub fn entry(&mut self, path: MockPath) -> hash_map::Entry<'_, MockPath, Vec<Mock>> {
+        self.0.entry(path)
+    }
+
+    /// Removes an entry from the mockset.
+    pub fn remove(&mut self, path: &MockPath) -> Option<Vec<Mock>> {
+        self.0.remove(path)
+    }
+
+    /// Clears the mockset.
+    pub fn clear(&mut self) {
+        self.0.clear()
     }
 
     /// Matches a [`Mock`] by path and predicate.
@@ -38,22 +62,6 @@ impl MockSet {
     /// Matches a [`Mock`] by path and body.
     pub fn match_by_body(&self, path: &MockPath, body: &[u8]) -> Option<&Mock> {
         self.find(path, |mock| mock.request.body() == body)
-    }
-
-    /// Matches a [`Mock`] by path, body, and headers.
-    pub fn match_by_body_and_headers(
-        &self,
-        path: &MockPath,
-        body: &[u8],
-        headers: &http::HeaderMap,
-    ) -> Option<&Mock> {
-        // `headers` must be a superset of `mock.request.headers`,
-        if let Some(mock) = self.match_by_body(path, body) {
-            if headers.is_superset(&mock.request.headers) {
-                return Some(mock);
-            }
-        }
-        None
     }
 }
 

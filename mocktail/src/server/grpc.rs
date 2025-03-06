@@ -1,5 +1,11 @@
-use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    convert::Infallible,
+    net::SocketAddr,
+    sync::{Arc, RwLockWriteGuard},
+    time::Duration,
+};
 
+use async_trait::async_trait;
 use bytes::{Bytes, BytesMut};
 use futures::{future::BoxFuture, StreamExt};
 use http::{HeaderMap, HeaderValue, Request, Response};
@@ -12,7 +18,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tracing::{debug, error, info};
 use url::Url;
 
-use super::ServerState;
+use super::{MockServer, ServerState};
 use crate::{
     mock::{MockPath, MockSet, TonicBoxBody},
     utils::{find_available_port, has_content_type, tonic::CodeExt},
@@ -23,6 +29,7 @@ use crate::{
 pub struct GrpcMockServer {
     name: &'static str,
     addr: SocketAddr,
+    base_url: Url,
     state: Arc<ServerState>,
 }
 
@@ -31,14 +38,20 @@ impl GrpcMockServer {
     pub fn new(name: &'static str, mocks: MockSet) -> Result<Self, Error> {
         let port = find_available_port().unwrap();
         let addr: SocketAddr = format!("0.0.0.0:{}", port).parse().unwrap();
+        let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
+        let state = Arc::new(ServerState::new(mocks));
         Ok(Self {
             name,
             addr,
-            state: Arc::new(ServerState::new(mocks)),
+            base_url,
+            state,
         })
     }
+}
 
-    pub async fn start(&self) -> Result<(), Error> {
+#[async_trait]
+impl MockServer for GrpcMockServer {
+    async fn start(&self) -> Result<(), Error> {
         let service = GrpcMockSvc {
             state: self.state.clone(),
         };
@@ -63,28 +76,26 @@ impl GrpcMockServer {
             }
         });
 
-        // Cushion for server to become ready, there is probably a better approach :)
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        // Give the server time to become ready
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         Ok(())
     }
 
-    /// Returns the server's service name.
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         self.name
     }
 
-    /// Returns the server's address.
-    pub fn addr(&self) -> SocketAddr {
+    fn addr(&self) -> SocketAddr {
         self.addr
     }
 
-    pub fn base_url(&self) -> Url {
-        Url::parse(&format!("http://{}", self.addr())).unwrap()
+    fn url(&self, path: &str) -> Url {
+        self.base_url.join(path).unwrap()
     }
 
-    pub fn url(&self, path: &str) -> Url {
-        self.base_url().join(path).unwrap()
+    fn mocks(&self) -> RwLockWriteGuard<'_, MockSet> {
+        self.state.mocks.write().unwrap()
     }
 }
 
@@ -140,7 +151,13 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
                     buf.extend(chunk);
                     // Attempt to match buffered data to mock
                     let body = buf.clone().freeze();
-                    if let Some(mock) = state.mocks.match_by_body(&path, &body) {
+                    let mock = state
+                        .mocks
+                        .read()
+                        .unwrap()
+                        .match_by_body(&path, &body)
+                        .cloned();
+                    if let Some(mock) = mock {
                         matched = true;
                         // A matching mock has been found, send response
                         debug!("mock found, sending response");
@@ -166,7 +183,6 @@ impl Service<Request<Incoming>> for GrpcMockSvc {
                 debug!("request stream closed");
                 if !matched {
                     debug!("no mocks found, sending error");
-                    dbg!(&state.mocks);
                     let mut trailers = HeaderMap::new();
                     trailers.insert("grpc-status", (tonic::Code::NotFound as i32).into());
                     trailers.insert("grpc-message", HeaderValue::from_static("mock not found"));

@@ -7,7 +7,7 @@ pub mod prelude {
 
     pub use crate::{
         mock::{Mock, MockBody, MockPath, MockRequest, MockResponse, MockSet},
-        server::{GrpcMockServer, HttpMockServer},
+        server::{GrpcMockServer, HttpMockServer, MockServer},
         utils::prost::MessageExt as _,
         Error,
     };
