@@ -1,6 +1,6 @@
 [package]
 name = "mocktail-test"
-version = "0.1.2-alpha"
+version = "0.1.3-alpha"
 edition = "2021"
 authors = ["Dan Clark", "Gaurav Kumbhat"]
 

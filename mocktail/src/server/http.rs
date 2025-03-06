@@ -1,5 +1,12 @@
-use std::{future::Future, net::SocketAddr, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    future::Future,
+    net::SocketAddr,
+    pin::Pin,
+    sync::{Arc, RwLockWriteGuard},
+    time::Duration,
+};
 
+use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Empty};
 use hyper::{body::Incoming, server::conn::http1, service::Service};
@@ -8,7 +15,7 @@ use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 use url::Url;
 
-use super::ServerState;
+use super::{MockServer, ServerState};
 use crate::{
     mock::{HyperBoxBody, MockPath, MockSet},
     utils::find_available_port,
@@ -19,6 +26,7 @@ use crate::{
 pub struct HttpMockServer {
     name: &'static str,
     addr: SocketAddr,
+    base_url: Url,
     state: Arc<ServerState>,
 }
 
@@ -27,14 +35,20 @@ impl HttpMockServer {
     pub fn new(name: &'static str, mocks: MockSet) -> Result<Self, Error> {
         let port = find_available_port().unwrap();
         let addr: SocketAddr = format!("0.0.0.0:{}", port).parse().unwrap();
+        let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
+        let state = Arc::new(ServerState::new(mocks));
         Ok(Self {
             name,
             addr,
-            state: Arc::new(ServerState::new(mocks)),
+            base_url,
+            state,
         })
     }
+}
 
-    pub async fn start(&self) -> Result<(), Error> {
+#[async_trait]
+impl MockServer for HttpMockServer {
+    async fn start(&self) -> Result<(), Error> {
         let service = HttpMockSvc {
             state: self.state.clone(),
         };
@@ -57,28 +71,26 @@ impl HttpMockServer {
             }
         });
 
-        // Cushion for server to become ready, there is probably a better approach :)
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        // Give the server time to become ready
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         Ok(())
     }
 
-    /// Returns the server's service name.
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         self.name
     }
 
-    /// Returns the server's address.
-    pub fn addr(&self) -> SocketAddr {
+    fn addr(&self) -> SocketAddr {
         self.addr
     }
 
-    pub fn base_url(&self) -> Url {
-        Url::parse(&format!("http://{}", self.addr())).unwrap()
+    fn url(&self, path: &str) -> Url {
+        self.base_url.join(path).unwrap()
     }
 
-    pub fn url(&self, path: &str) -> Url {
-        self.base_url().join(path).unwrap()
+    fn mocks(&self) -> RwLockWriteGuard<'_, MockSet> {
+        self.state.mocks.write().unwrap()
     }
 }
 
@@ -103,7 +115,13 @@ impl Service<Request<Incoming>> for HttpMockSvc {
             let body = req.into_body().collect().await.unwrap().to_bytes();
 
             // Match to mock and send response
-            if let Some(mock) = state.mocks.match_by_body(&path, &body) {
+            let mock = state
+                .mocks
+                .read()
+                .unwrap()
+                .match_by_body(&path, &body)
+                .cloned();
+            if let Some(mock) = mock {
                 let mut response = Response::builder()
                     .status(mock.response.code())
                     .body(mock.response.body().to_hyper_boxed())
