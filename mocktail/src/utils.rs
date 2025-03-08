@@ -1,7 +1,4 @@
-use std::net::TcpListener;
-
 use http::{header, HeaderMap};
-use rand::Rng;
 
 pub mod tonic {
     use http::status::InvalidStatusCode;
@@ -66,20 +63,6 @@ pub mod prost {
             buf.freeze()
         }
     }
-}
-
-pub fn find_available_port() -> Option<u16> {
-    let mut rng = rand::rng();
-    loop {
-        let port: u16 = rng.random_range(40000..60000);
-        if port_is_available(port) {
-            return Some(port);
-        }
-    }
-}
-
-pub fn port_is_available(port: u16) -> bool {
-    TcpListener::bind(("0.0.0.0", port)).is_ok()
 }
 
 pub fn has_content_type(headers: &HeaderMap, content_type: &str) -> bool {

@@ -1,8 +1,8 @@
 [package]
 name = "mocktail-test"
-version = "0.1.3-alpha"
+version = "0.2.0-alpha"
 edition = "2021"
-authors = ["Dan Clark", "Gaurav Kumbhat"]
+authors = ["Dan Clark"]
 
 license = "Apache-2.0"
 repository = "https://github.com/IBM/mocktail"
