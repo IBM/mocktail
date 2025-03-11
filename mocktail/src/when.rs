@@ -84,9 +84,21 @@ impl When {
 
 /// Body convenience methods.
 impl When {
+    /// Empty body.
+    pub fn empty(self) -> Self {
+        self.push(matchers::body(Body::empty()));
+        self
+    }
+
     /// Raw bytes body.
     pub fn raw(self, body: Vec<u8>) -> Self {
         self.push(matchers::body(Body::raw(body)));
+        self
+    }
+
+    /// Text body.
+    pub fn text(self, body: impl Into<String>) -> Self {
+        self.push(matchers::body(Body::text(body)));
         self
     }
 

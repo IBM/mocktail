@@ -66,10 +66,26 @@ impl Then {
 
 /// Body convenience methods.
 impl Then {
+    /// Empty body.
+    pub fn empty(self) -> Self {
+        self.update(|r| {
+            r.body = Body::empty();
+        });
+        self
+    }
+
     /// Raw bytes body.
     pub fn raw(self, body: Vec<u8>) -> Self {
         self.update(|r| {
             r.body = Body::raw(body);
+        });
+        self
+    }
+
+    /// Text body.
+    pub fn text(self, body: impl Into<String>) -> Self {
+        self.update(|r| {
+            r.body = Body::text(body);
         });
         self
     }
