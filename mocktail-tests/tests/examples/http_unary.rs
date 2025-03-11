@@ -23,6 +23,10 @@ async fn test_unary() -> Result<(), Error> {
             message: "hello dan!".into(),
         });
     });
+    mocks.mock(|when, then| {
+        when.get().path("/world");
+        then.text("hello!");
+    });
 
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
@@ -43,6 +47,11 @@ async fn test_unary() -> Result<(), Error> {
         }
     );
 
+    let response = client.get(server.url("/world")).send().await?;
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let res = response.text().await?;
+    assert_eq!(res, "hello!");
+
     Ok(())
 }
 
@@ -54,6 +63,10 @@ async fn test_unary_errors() -> Result<(), Error> {
             name: "unexpected_error".into(),
         });
         then.internal_server_error().message("unexpected error");
+    });
+    mocks.mock(|when, then| {
+        when.get().path("/error");
+        then.bad_request();
     });
 
     let server = MockServer::new("hello").with_mocks(mocks);
@@ -72,6 +85,9 @@ async fn test_unary_errors() -> Result<(), Error> {
     let message = response.text().await?;
     assert_eq!(message, "unexpected error");
 
+    let response = client.get(server.url("/error")).send().await?;
+    assert_eq!(response.status(), http::StatusCode::BAD_REQUEST);
+
     // Mock not found
     let response = client
         .post(server.url("/hello"))
@@ -83,6 +99,48 @@ async fn test_unary_errors() -> Result<(), Error> {
     assert_eq!(response.status(), http::StatusCode::NOT_FOUND);
     let message = response.text().await?;
     assert_eq!(message, "mock not found");
+
+    // Clear server mocks
+    server.mocks().clear();
+
+    // Add a mock that responds with a 503 error on any
+    // endpoint if the body is "give me an error"
+    server.mocks().mock(|when, then| {
+        when.text("give me an error");
+        then.status(StatusCode::from_u16(503).unwrap());
+    });
+    let response = client
+        .get(server.url("/path"))
+        .body("give me an error")
+        .send()
+        .await?;
+    assert_eq!(response.status(), http::StatusCode::SERVICE_UNAVAILABLE);
+
+    Ok(())
+}
+
+#[test(tokio::test)]
+async fn test_any() -> Result<(), Error> {
+    let mut mocks = MockSet::new();
+    mocks.mock(|when, then| {
+        when.any();
+        then.text("yo!");
+    });
+
+    let server = MockServer::new("any").with_mocks(mocks);
+    server.start().await?;
+
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
+
+    let response = client.post(server.url("/asdf")).send().await?;
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let res = response.text().await?;
+    assert_eq!(res, "yo!");
+
+    let response = client.post(server.url("/whatever")).send().await?;
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let res = response.text().await?;
+    assert_eq!(res, "yo!");
 
     Ok(())
 }
