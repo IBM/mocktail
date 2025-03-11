@@ -36,7 +36,7 @@ impl Service<http::Request<Incoming>> for HttpMockService {
     fn call(&self, req: http::Request<Incoming>) -> Self::Future {
         let mocks = self.mocks.clone();
         let fut = async move {
-            debug!("handling request");
+            debug!(?req, "handling request");
             let (parts, mut body) = req.into_parts();
 
             // Get initial data frame

@@ -30,7 +30,7 @@ async fn test_headers() -> Result<(), Error> {
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     // Header
     let response = client

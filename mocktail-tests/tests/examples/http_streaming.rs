@@ -39,7 +39,7 @@ async fn test_json_lines_stream() -> Result<(), Error> {
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     let chunks = [
         HelloRequest { name: "dan".into() },
@@ -87,7 +87,7 @@ async fn test_bytes_stream() -> Result<(), Error> {
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     let chunks = ["dan", "mateus"]
         .into_iter()
@@ -131,7 +131,7 @@ async fn test_sse_stream() -> Result<(), Error> {
     let server = MockServer::new("sse").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     let response = client.post(server.url("/sse-stream")).send().await?;
     assert_eq!(response.status(), http::StatusCode::OK);

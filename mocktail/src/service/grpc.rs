@@ -35,7 +35,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
     fn call(&self, req: http::Request<Incoming>) -> Self::Future {
         let mocks = self.mocks.clone();
         let fut = async move {
-            debug!("handling request");
+            debug!(?req, "handling request");
             let headers: Headers = req.headers().into();
             if !headers.has_content_type("application/grpc") {
                 return Ok(invalid_content_type_response());

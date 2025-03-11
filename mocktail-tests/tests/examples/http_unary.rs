@@ -27,7 +27,7 @@ async fn test_unary() -> Result<(), Error> {
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     let response = client
         .post(server.url("/hello"))
@@ -59,7 +59,7 @@ async fn test_unary_errors() -> Result<(), Error> {
     let server = MockServer::new("hello").with_mocks(mocks);
     server.start().await?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
     let response = client
         .post(server.url("/hello"))
