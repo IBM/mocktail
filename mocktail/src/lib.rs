@@ -1,15 +1,31 @@
 #![doc = include_str!("../README.md")]
-pub mod mock;
-pub mod server;
-pub mod utils;
+mod body;
+pub use body::Body;
+mod headers;
+pub use headers::*;
+mod matchers;
+pub use matchers::*;
+mod mock;
+pub use mock::Mock;
+mod mock_set;
+pub use mock_set::MockSet;
+mod request;
+pub use request::Request;
+mod response;
+pub use response::Response;
+mod when;
+pub use when::When;
+mod then;
+pub use then::Then;
+mod server;
+pub use server::MockServer;
+mod buf_list;
+mod ext;
+mod service;
 pub mod prelude {
-    pub use http::{HeaderMap, HeaderValue, Method, StatusCode};
-
     pub use crate::{
-        mock::{Mock, MockBody, MockPath, MockRequest, MockResponse, MockSet},
-        server::{GrpcMockServer, HttpMockServer, MockServer},
-        utils::prost::MessageExt as _,
-        Error,
+        matchers::*, Body, HeaderName, HeaderValue, Headers, Mock, MockServer, MockSet, Request,
+        Response, Then, When,
     };
 }
 
@@ -23,4 +39,6 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("reqwest error: {0}")]
     ReqwestError(#[from] reqwest::Error),
+    #[error("server error: {0}")]
+    ServerError(String),
 }
