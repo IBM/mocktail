@@ -12,14 +12,14 @@ async fn test_server_streaming() -> Result<(), Error> {
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloServerStreaming")
             .pb(HelloServerStreamingRequest {
-                names: vec!["Dan".into(), "Gaurav".into()],
+                names: vec!["dan".into(), "gaurav".into()],
             });
         then.pb_stream([
             HelloResponse {
-                message: "Hello Dan!".into(),
+                message: "hello dan!".into(),
             },
             HelloResponse {
-                message: "Hello Gaurav!".into(),
+                message: "hello gaurav!".into(),
             },
         ]);
     });
@@ -34,7 +34,7 @@ async fn test_server_streaming() -> Result<(), Error> {
 
     let response = client
         .hello_server_streaming(HelloServerStreamingRequest {
-            names: vec!["Dan".into(), "Gaurav".into()],
+            names: vec!["dan".into(), "gaurav".into()],
         })
         .await?;
     let mut stream = response.into_inner();

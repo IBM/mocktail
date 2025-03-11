@@ -6,14 +6,14 @@ use std::{
 use bytes::{Bytes, BytesMut};
 use futures::{future::BoxFuture, StreamExt};
 use http::HeaderMap;
-use http_body::Frame;
+use http_body::{Body as _, Frame};
 use http_body_util::{BodyExt, Full, StreamBody};
 use hyper::{body::Incoming, service::Service};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::debug;
 
-use crate::{Headers, MockSet, Request};
+use crate::{MockSet, Request};
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
@@ -37,11 +37,44 @@ impl Service<http::Request<Incoming>> for HttpMockService {
         let mocks = self.mocks.clone();
         let fut = async move {
             debug!("handling request");
-            let headers: Headers = req.headers().into();
-            let (parts, body) = req.into_parts();
+            let (parts, mut body) = req.into_parts();
 
-            if headers.has_chunked_encoding() {
-                // Process body as streaming
+            // Get initial data frame
+            let chunk = if !body.is_end_stream() {
+                body.frame().await.unwrap().unwrap().into_data().unwrap() // TODO: handle errors
+            } else {
+                Bytes::default()
+            };
+            debug!(?chunk, "received chunk");
+
+            if body.is_end_stream() {
+                // Process as unary
+                let request = Request::from_parts(parts).with_body(chunk);
+                let response = mocks.read().unwrap().match_to_response(&request);
+                if let Some(response) = response {
+                    debug!("mock found, sending response");
+                    let mut body = response.body().clone().as_bytes();
+                    if response.is_error() {
+                        if let Some(message) = response.message() {
+                            body = Bytes::copy_from_slice(message.as_bytes());
+                        }
+                    }
+                    let status = response.status().as_http();
+                    let mut res = http::Response::builder()
+                        .status(status)
+                        .body(full(body))
+                        .unwrap();
+                    *res.headers_mut() = response.headers.into();
+                    Ok(res)
+                } else {
+                    debug!(?request, "no mocks found, sending error");
+                    Ok(http::Response::builder()
+                        .status(http::StatusCode::NOT_FOUND)
+                        .body(full(Bytes::from("mock not found")))
+                        .unwrap())
+                }
+            } else {
+                // Process as streaming
                 let mut stream = body.into_data_stream();
 
                 // Create response stream
@@ -56,6 +89,7 @@ impl Service<http::Request<Incoming>> for HttpMockService {
                     let mut request = Request::from_parts(parts);
                     let mut matched = false;
                     let mut buf = BytesMut::new();
+                    buf.extend(chunk);
 
                     while let Some(Ok(chunk)) = stream.next().await {
                         debug!(?chunk, "received chunk");
@@ -99,37 +133,6 @@ impl Service<http::Request<Incoming>> for HttpMockService {
                     }
                 });
                 Ok(response)
-            } else {
-                // Process body as unary
-                // Collect body
-                let bytes = body.collect().await.unwrap().to_bytes();
-                let request = Request::from_parts(parts).with_body(bytes);
-                let response = mocks.read().unwrap().match_to_response(&request);
-                if let Some(response) = response {
-                    debug!("mock found, sending response");
-                    let mut body = response.body().clone().as_bytes();
-                    if response.is_error() {
-                        if let Some(message) = response.message() {
-                            body = Bytes::copy_from_slice(message.as_bytes());
-                        }
-                    }
-                    let status = response.status().as_http();
-                    let mut res = http::Response::builder()
-                        .status(status)
-                        .body(full(body))
-                        .unwrap();
-                    let headers = res.headers_mut();
-                    for (name, value) in response.headers {
-                        headers.insert::<http::HeaderName>(name.into(), value.into());
-                    }
-                    Ok(res)
-                } else {
-                    debug!(?request, "no mocks found, sending error");
-                    Ok(http::Response::builder()
-                        .status(http::StatusCode::NOT_FOUND)
-                        .body(full(Bytes::copy_from_slice("mock not found".as_bytes())))
-                        .unwrap())
-                }
             }
         };
         Box::pin(fut)

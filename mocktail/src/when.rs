@@ -1,5 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 
+use bytes::Bytes;
+
 use crate::{body::Body, headers::Headers, matchers, request::Method, Matcher};
 
 /// A request match conditions builder.
@@ -91,14 +93,30 @@ impl When {
     }
 
     /// Raw bytes body.
-    pub fn raw(self, body: Vec<u8>) -> Self {
-        self.push(matchers::body(Body::raw(body)));
+    pub fn bytes(self, body: impl Into<Bytes>) -> Self {
+        self.push(matchers::body(Body::bytes(body.into())));
+        self
+    }
+
+    /// Raw bytes stream body.
+    pub fn bytes_stream(self, messages: impl IntoIterator<Item = impl Into<Bytes>>) -> Self {
+        self.push(matchers::body(Body::bytes_stream(messages)));
         self
     }
 
     /// Text body.
     pub fn text(self, body: impl Into<String>) -> Self {
         self.push(matchers::body(Body::text(body)));
+        self
+    }
+
+    /// Text stream body.
+    pub fn text_stream(self, messages: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        let messages = messages.into_iter().map(|msg| {
+            let msg: String = msg.into();
+            msg
+        });
+        self.push(matchers::body(Body::bytes_stream(messages)));
         self
     }
 

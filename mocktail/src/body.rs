@@ -18,10 +18,16 @@ impl Body {
         Self::default()
     }
 
-    /// Creates a bytes body.
-    pub fn raw(body: impl Into<Bytes>) -> Self {
+    /// Creates a raw bytes body.
+    pub fn bytes(body: impl Into<Bytes>) -> Self {
         let bytes: Bytes = body.into();
         Self { bufs: bytes.into() }
+    }
+
+    /// Creates a raw bytes streaming body.
+    pub fn bytes_stream(messages: impl IntoIterator<Item = impl Into<Bytes>>) -> Self {
+        let bufs = messages.into_iter().map(|msg| msg.into()).collect();
+        Self { bufs }
     }
 
     /// Creates a text body.
@@ -127,6 +133,6 @@ impl http_body::Body for Body {
 
 impl From<Bytes> for Body {
     fn from(value: Bytes) -> Self {
-        Self::raw(value)
+        Self::bytes(value)
     }
 }

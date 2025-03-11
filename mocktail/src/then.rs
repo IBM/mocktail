@@ -1,5 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 
+use bytes::Bytes;
+
 use crate::{
     body::Body,
     headers::{HeaderName, HeaderValue, Headers},
@@ -75,9 +77,17 @@ impl Then {
     }
 
     /// Raw bytes body.
-    pub fn raw(self, body: Vec<u8>) -> Self {
+    pub fn bytes(self, body: Vec<u8>) -> Self {
         self.update(|r| {
-            r.body = Body::raw(body);
+            r.body = Body::bytes(body);
+        });
+        self
+    }
+
+    /// Raw bytes streaming body.
+    pub fn bytes_stream(self, messages: impl IntoIterator<Item = impl Into<Bytes>>) -> Self {
+        self.update(|r| {
+            r.body = Body::bytes_stream(messages);
         });
         self
     }
@@ -86,6 +96,18 @@ impl Then {
     pub fn text(self, body: impl Into<String>) -> Self {
         self.update(|r| {
             r.body = Body::text(body);
+        });
+        self
+    }
+
+    /// Text streaming body.
+    pub fn text_stream(self, messages: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        let messages = messages.into_iter().map(|msg| {
+            let msg: String = msg.into();
+            msg
+        });
+        self.update(|r| {
+            r.body = Body::bytes_stream(messages);
         });
         self
     }
@@ -126,9 +148,6 @@ impl Then {
         });
         self
     }
-
-    // TODO
-    // pub fn sse_stream() {}
 }
 
 /// Status convenience methods.

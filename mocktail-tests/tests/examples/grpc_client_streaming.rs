@@ -10,14 +10,14 @@ async fn test_client_streaming() -> Result<(), Error> {
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloClientStreaming").pb_stream([
             HelloRequest {
-                name: "Mateus".into(),
+                name: "mateus".into(),
             },
             HelloRequest {
-                name: "Paulo".into(),
+                name: "paulo".into(),
             },
         ]);
         then.pb(HelloClientStreamingResponse {
-            messages: vec!["Hello Mateus!".into(), "Hello Paulo!".into()],
+            messages: vec!["hello mateus!".into(), "hello paulo!".into()],
         });
     });
 
@@ -32,10 +32,10 @@ async fn test_client_streaming() -> Result<(), Error> {
     let result = client
         .hello_client_streaming(futures::stream::iter([
             HelloRequest {
-                name: "Mateus".into(),
+                name: "mateus".into(),
             },
             HelloRequest {
-                name: "Paulo".into(),
+                name: "paulo".into(),
             },
         ]))
         .await;
