@@ -974,28 +974,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mocktail-test"
-version = "0.2.0-alpha"
-dependencies = [
- "anyhow",
- "eventsource-stream",
- "futures",
- "http",
- "hyper",
- "mocktail",
- "prost",
- "prost-types",
- "reqwest",
- "serde",
- "test-log",
- "tokio",
- "tokio-stream",
- "tonic",
- "tonic-build",
- "tracing",
-]
-
-[[package]]
 name = "multimap"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1742,6 +1720,28 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tests"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "eventsource-stream",
+ "futures",
+ "http",
+ "hyper",
+ "mocktail",
+ "prost",
+ "prost-types",
+ "reqwest",
+ "serde",
+ "test-log",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tonic-build",
+ "tracing",
 ]
 
 [[package]]

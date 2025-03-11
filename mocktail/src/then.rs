@@ -2,7 +2,7 @@ use std::{cell::Cell, rc::Rc};
 
 use crate::{
     body::Body,
-    headers::Headers,
+    headers::{HeaderName, HeaderValue, Headers},
     response::{Response, StatusCode},
 };
 
@@ -15,10 +15,12 @@ impl Then {
         Self(Rc::new(Cell::new(Response::default())))
     }
 
+    /// Returns the inner response.
     pub fn into_inner(self) -> Response {
         self.0.take()
     }
 
+    /// Updates the response.
     fn update<F: FnOnce(&mut Response)>(&self, f: F) {
         let mut r = self.0.take();
         f(&mut r);
@@ -34,9 +36,10 @@ impl Then {
     }
 
     /// HTTP headers.
-    pub fn headers<T>(self, headers: impl IntoIterator<Item = (T, T)>) -> Self
+    pub fn headers<T, U>(self, headers: impl IntoIterator<Item = (T, U)>) -> Self
     where
-        T: Into<String>,
+        T: Into<HeaderName>,
+        U: Into<HeaderValue>,
     {
         self.update(|r| {
             r.headers = Headers::from_iter(headers);
@@ -52,6 +55,17 @@ impl Then {
         self
     }
 
+    /// Error message.
+    pub fn message(self, message: impl Into<String>) -> Self {
+        self.update(|r| {
+            r.message = Some(message.into());
+        });
+        self
+    }
+}
+
+/// Body convenience methods.
+impl Then {
     /// Raw bytes body.
     pub fn raw(self, body: Vec<u8>) -> Self {
         self.update(|r| {
@@ -69,13 +83,14 @@ impl Then {
         self
     }
 
-    // TODO: change to ndjson_stream()
-    pub fn json_stream(
+    /// Newline delimited JSON streaming body.
+    pub fn json_lines_stream(
         self,
         messages: impl IntoIterator<Item = impl serde::Serialize>,
     ) -> Self {
         self.update(|r| {
-            r.body = Body::json_stream(messages);
+            r.headers.insert("content-type", "application/x-ndjson");
+            r.body = Body::json_lines_stream(messages);
         });
         self
     }
@@ -83,7 +98,6 @@ impl Then {
     /// Protobuf body.
     pub fn pb(self, body: impl prost::Message) -> Self {
         self.update(|r| {
-            r.headers.insert("content-type", "application/grpc");
             r.body = Body::pb(body);
         });
         self
@@ -97,14 +111,12 @@ impl Then {
         self
     }
 
-    /// Error message.
-    pub fn message(self, message: impl Into<String>) -> Self {
-        self.update(|r| {
-            r.message = Some(message.into());
-        });
-        self
-    }
+    // TODO
+    // pub fn sse_stream() {}
+}
 
+/// Status convenience methods.
+impl Then {
     /// Error status code and message.
     pub fn error(self, status: StatusCode, message: impl Into<String>) -> Self {
         self.update(|r| {

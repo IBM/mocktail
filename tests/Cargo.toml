@@ -1,11 +1,6 @@
 [package]
-name = "mocktail-test"
-version = "0.2.0-alpha"
+name = "tests"
 edition = "2021"
-authors = ["Dan Clark"]
-
-license = "Apache-2.0"
-repository = "https://github.com/IBM/mocktail"
 
 [dependencies]
 tokio = "1.43.0"
@@ -25,4 +20,4 @@ tracing = "0.1.41"
 hyper = { version = "1.6.0", features = ["full"] }
 
 [build-dependencies]
-tonic-build = "0.12.3"
+tonic-build = "*"

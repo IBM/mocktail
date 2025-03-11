@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
 use super::{body::Body, headers::Headers, request::Request};
 use crate::request::Method;
+use std::cmp::Ordering;
 
 /// A matcher.
 pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
@@ -20,7 +20,7 @@ impl Eq for dyn Matcher {}
 
 impl PartialOrd for dyn Matcher {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.name().partial_cmp(other.name())
+        Some(self.cmp(other))
     }
 }
 
@@ -90,7 +90,7 @@ impl Matcher for BodyMatcher {
         "body"
     }
     fn matches(&self, req: &Request) -> bool {
-        self.0 == *req.body
+        self.0 == req.body
     }
 }
 

@@ -1,24 +1,31 @@
 #![doc = include_str!("../README.md")]
-pub(crate) mod body;
-pub(crate) mod headers;
-pub(crate) mod matchers;
-pub(crate) use matchers::*;
-pub(crate) mod mock;
-pub(crate) use mock::*;
-pub(crate) mod mock_set;
-pub(crate) use mock_set::*;
-pub(crate) mod request;
-pub(crate) use request::Request;
-pub(crate) mod response;
-pub(crate) use response::Response;
-pub(crate) mod mock_builder;
-pub(crate) mod server;
-pub(crate) use mock_builder::*;
-pub(crate) mod utils;
+mod body;
+pub use body::Body;
+mod headers;
+pub use headers::*;
+mod matchers;
+pub use matchers::*;
+mod mock;
+pub use mock::Mock;
+mod mock_set;
+pub use mock_set::MockSet;
+mod request;
+pub use request::Request;
+mod response;
+pub use response::Response;
+mod when;
+pub use when::When;
+mod then;
+pub use then::Then;
+mod server;
+pub use server::MockServer;
+mod buf_list;
+mod ext;
+mod service;
 pub mod prelude {
     pub use crate::{
-        body::Body, headers::Headers, matchers::*, mock::Mock, mock_set::MockSet, request::*,
-        response::*, server::*,
+        matchers::*, Body, HeaderName, HeaderValue, Headers, Mock, MockServer, MockSet, Request,
+        Response, Then, When,
     };
 }
 

@@ -11,6 +11,7 @@ impl When {
         Self(Rc::new(Cell::new(Vec::new())))
     }
 
+    /// Sorts, deduplicates, and returns the inner set of matchers.
     pub fn into_inner(self) -> Vec<Box<dyn Matcher>> {
         let mut m = self.0.take();
         m.sort_unstable();
@@ -18,6 +19,7 @@ impl When {
         m
     }
 
+    /// Pushes a matcher to the set of matchers.
     fn push(&self, matcher: impl Matcher) {
         let mut m = self.0.take();
         m.push(Box::new(matcher));
@@ -25,7 +27,7 @@ impl When {
     }
 
     /// Any.
-    /// Matches any request, so should not be used with other matchers.
+    /// Should not be combined with other matchers.
     pub fn any(self) -> Self {
         self.push(matchers::any());
         self
@@ -34,30 +36,6 @@ impl When {
     /// HTTP method.
     pub fn method(self, method: impl Into<Method>) -> Self {
         self.push(matchers::method(method.into()));
-        self
-    }
-
-    /// HTTP get method.
-    pub fn get(self) -> Self {
-        self.push(matchers::method(Method::GET));
-        self
-    }
-
-    /// HTTP post method.
-    pub fn post(self) -> Self {
-        self.push(matchers::method(Method::POST));
-        self
-    }
-
-    /// HTTP put method.
-    pub fn put(self) -> Self {
-        self.push(matchers::method(Method::PUT));
-        self
-    }
-
-    /// HTTP delete method.
-    pub fn delete(self) -> Self {
-        self.push(matchers::method(Method::DELETE));
         self
     }
 
@@ -70,39 +48,6 @@ impl When {
     /// Body.
     pub fn body(self, body: Body) -> Self {
         self.push(matchers::body(body));
-        self
-    }
-
-    /// Raw bytes body.
-    pub fn raw(self, body: Vec<u8>) -> Self {
-        self.push(matchers::body(Body::raw(body)));
-        self
-    }
-
-    /// Json body.
-    pub fn json(self, body: impl serde::Serialize) -> Self {
-        self.push(matchers::body(Body::json(body)));
-        self
-    }
-
-    // TODO: change to ndjson_stream()
-    pub fn json_stream(
-        self,
-        messages: impl IntoIterator<Item = impl serde::Serialize>,
-    ) -> Self {
-        self.push(matchers::body(Body::json_stream(messages)));
-        self
-    }
-
-    /// Protobuf body.
-    pub fn pb(self, body: impl prost::Message) -> Self {
-        self.push(matchers::body(Body::pb(body)));
-        self
-    }
-
-    /// Protobuf streaming body.
-    pub fn pb_stream(self, messages: impl IntoIterator<Item = impl prost::Message>) -> Self {
-        self.push(matchers::body(Body::pb_stream(messages)));
         self
     }
 
@@ -133,6 +78,69 @@ impl When {
     /// Custom matcher.
     pub fn matcher(self, matcher: impl Matcher) -> Self {
         self.push(matcher);
+        self
+    }
+}
+
+/// Body convenience methods.
+impl When {
+    /// Raw bytes body.
+    pub fn raw(self, body: Vec<u8>) -> Self {
+        self.push(matchers::body(Body::raw(body)));
+        self
+    }
+
+    /// Json body.
+    pub fn json(self, body: impl serde::Serialize) -> Self {
+        self.push(matchers::body(Body::json(body)));
+        self
+    }
+
+    /// Newline delimited JSON streaming body.
+    pub fn json_lines_stream(
+        self,
+        messages: impl IntoIterator<Item = impl serde::Serialize>,
+    ) -> Self {
+        self.push(matchers::body(Body::json_lines_stream(messages)));
+        self
+    }
+
+    /// Protobuf body.
+    pub fn pb(self, body: impl prost::Message) -> Self {
+        self.push(matchers::body(Body::pb(body)));
+        self
+    }
+
+    /// Protobuf streaming body.
+    pub fn pb_stream(self, messages: impl IntoIterator<Item = impl prost::Message>) -> Self {
+        self.push(matchers::body(Body::pb_stream(messages)));
+        self
+    }
+}
+
+/// Method convenience methods.
+impl When {
+    /// HTTP GET method.
+    pub fn get(self) -> Self {
+        self.push(matchers::method(Method::GET));
+        self
+    }
+
+    /// HTTP POST method.
+    pub fn post(self) -> Self {
+        self.push(matchers::method(Method::POST));
+        self
+    }
+
+    /// HTTP PUT method.
+    pub fn put(self) -> Self {
+        self.push(matchers::method(Method::PUT));
+        self
+    }
+
+    /// HTTP DELETE method.
+    pub fn delete(self) -> Self {
+        self.push(matchers::method(Method::DELETE));
         self
     }
 }

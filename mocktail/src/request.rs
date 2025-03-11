@@ -1,6 +1,4 @@
-use bytes::Bytes;
-
-use super::headers::Headers;
+use crate::{Body, Headers};
 
 /// A representation of a HTTP request.
 #[derive(Debug, Clone, PartialEq)]
@@ -9,7 +7,7 @@ pub struct Request {
     pub path: String,
     pub query: Option<String>,
     pub headers: Headers,
-    pub body: Bytes,
+    pub body: Body,
 }
 
 impl Request {
@@ -19,7 +17,7 @@ impl Request {
             path: path.into(),
             query: None,
             headers: Headers::default(),
-            body: Bytes::default(),
+            body: Body::default(),
         }
     }
 
@@ -29,13 +27,8 @@ impl Request {
             path: parts.uri.path().to_string(),
             query: parts.uri.query().map(Into::into),
             headers: parts.headers.into(),
-            body: Bytes::default(),
+            body: Body::default(),
         }
-    }
-
-    pub fn with_headers(mut self, headers: Headers) -> Self {
-        self.headers = headers;
-        self
     }
 
     pub fn with_query(mut self, query: impl Into<String>) -> Self {
@@ -43,9 +36,30 @@ impl Request {
         self
     }
 
-    pub fn with_body(mut self, body: Bytes) -> Self {
-        self.body = body;
+    pub fn with_headers(mut self, headers: Headers) -> Self {
+        self.headers = headers;
         self
+    }
+
+    pub fn with_body(mut self, body: impl Into<Body>) -> Self {
+        self.body = body.into();
+        self
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn query(&self) -> Option<&str> {
+        self.query.as_deref()
+    }
+
+    pub fn headers(&self) -> &Headers {
+        &self.headers
+    }
+
+    pub fn body(&self) -> &Body {
+        &self.body
     }
 }
 

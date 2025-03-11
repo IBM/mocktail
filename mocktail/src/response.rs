@@ -1,7 +1,7 @@
 use std::num::NonZeroU16;
 
 use super::{body::Body, headers::Headers};
-use crate::{utils::tonic::CodeExt, Error};
+use crate::{ext::CodeExt, Error};
 
 /// A representation of a HTTP response.
 #[derive(Debug, Clone, PartialEq)]
@@ -13,11 +13,11 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new(body: Body) -> Self {
+    pub fn new(body: impl Into<Body>) -> Self {
         Self {
             status: StatusCode::default(),
             headers: Headers::default(),
-            body,
+            body: body.into(),
             message: None,
         }
     }
@@ -37,17 +37,20 @@ impl Response {
         self
     }
 
+    pub fn status(&self) -> &StatusCode {
+        &self.status
+    }
+
+    pub fn headers(&self) -> &Headers {
+        &self.headers
+    }
+
     pub fn body(&self) -> &Body {
         &self.body
     }
 
     pub fn message(&self) -> Option<&str> {
         self.message.as_deref()
-    }
-
-    pub fn message_header_value(&self) -> Option<http::HeaderValue> {
-        self.message()
-            .map(|value| http::HeaderValue::from_str(value).unwrap())
     }
 
     pub fn is_ok(&self) -> bool {
@@ -112,6 +115,10 @@ impl StatusCode {
 
     pub fn as_grpc(&self) -> tonic::Code {
         tonic::Code::from_u16(self.as_u16()).unwrap()
+    }
+
+    pub fn as_grpc_i32(&self) -> i32 {
+        self.as_grpc() as i32
     }
 }
 

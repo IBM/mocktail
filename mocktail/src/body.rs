@@ -1,113 +1,125 @@
-use bytes::Bytes;
-use futures::stream;
+use std::{collections::vec_deque, convert::Infallible, pin::Pin, task::Poll};
+
+use bytes::{Buf, Bytes};
+use futures::Stream;
 use http_body::Frame;
-use http_body_util::{BodyExt, Empty, Full, StreamBody};
 
-use crate::utils::prost::MessageExt;
-
-type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
+use crate::{buf_list::BufList, ext::MessageExt};
 
 /// A mock body.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Body {
-    Bytes(Bytes),
-    Stream(Vec<Bytes>),
+#[derive(Default, Debug, Clone)]
+pub struct Body {
+    bufs: BufList,
 }
 
 impl Body {
+    /// Creates an empty body.
     pub fn empty() -> Self {
         Self::default()
     }
 
-    pub fn raw(body: Vec<u8>) -> Self {
-        Self::Bytes(body.into())
+    /// Creates a bytes body.
+    pub fn raw(body: impl Into<Bytes>) -> Self {
+        let bytes: Bytes = body.into();
+        Self { bufs: bytes.into() }
     }
 
+    /// Creates a JSON body.
     pub fn json(body: impl serde::Serialize) -> Self {
-        Self::Bytes(serde_json::to_vec(&body).unwrap().into())
+        let bytes = serde_json::to_vec(&body).unwrap();
+        Self { bufs: bytes.into() }
     }
 
-    // TODO: change to ndjson_stream
-    pub fn json_stream(messages: impl IntoIterator<Item = impl serde::Serialize>) -> Self {
+    /// Creates a newline delimited JSON streaming body.
+    pub fn json_lines_stream(messages: impl IntoIterator<Item = impl serde::Serialize>) -> Self {
         let bufs = messages
             .into_iter()
-            .map(|msg| serde_json::to_vec(&msg).unwrap().into())
+            .map(|msg| {
+                let mut bytes = serde_json::to_vec(&msg).unwrap();
+                bytes.push(b'\n');
+                bytes.into()
+            })
             .collect();
-        Self::Stream(bufs)
+        Self { bufs }
     }
 
+    /// Creates a protobuf body.
     pub fn pb(body: impl prost::Message) -> Self {
-        Self::Bytes(body.to_bytes())
+        let bytes = body.to_bytes();
+        Self { bufs: bytes.into() }
     }
 
+    /// Creates a protobuf streaming body.
     pub fn pb_stream(messages: impl IntoIterator<Item = impl prost::Message>) -> Self {
-        Self::Stream(messages.into_iter().map(|msg| msg.to_bytes()).collect())
+        let bufs = messages.into_iter().map(|msg| msg.to_bytes()).collect();
+        Self { bufs }
     }
 
-    // TODO:
+    // TODO
     // pub fn sse_stream() -> Self {}
 
+    /// Returns true if empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns the byte length of the body.
     pub fn len(&self) -> usize {
-        match self {
-            Body::Bytes(chunk) => chunk.len(),
-            Body::Stream(chunks) => chunks.iter().map(|chunk| chunk.len()).sum(),
-        }
+        self.bufs.remaining()
     }
 
-    pub fn chunks(&self) -> Vec<Bytes> {
-        match self {
-            Body::Bytes(chunk) => vec![chunk.clone()],
-            Body::Stream(chunks) => chunks.clone(),
-        }
+    pub fn as_bytes(&mut self) -> Bytes {
+        self.bufs.as_bytes()
     }
 
-    /// Returns a type-erased HTTP body for hyper.
-    pub fn to_hyper_boxed(&self) -> BoxBody {
-        if self.is_empty() {
-            return Empty::new().map_err(|err| match err {}).boxed();
-        }
-        match self {
-            Body::Bytes(chunk) => Full::new(chunk.clone())
-                .map_err(|never| match never {})
-                .boxed(),
-            Body::Stream(chunks) => {
-                let messages: Vec<Result<_, hyper::Error>> = chunks
-                    .iter()
-                    .map(|chunk| Ok(Frame::data(chunk.clone())))
-                    .collect();
-                BoxBody::new(StreamBody::new(stream::iter(messages)))
-            }
+    pub fn iter(&self) -> vec_deque::Iter<'_, Bytes> {
+        self.bufs.iter()
+    }
+}
+
+impl PartialEq for Body {
+    fn eq(&self, other: &Self) -> bool {
+        // We want to compare the merged bytes from all bufs
+        // as the request body will be buffered chunks.
+        // TODO: figure out a better approach with less overhead?
+        self.bufs.clone().as_bytes() == other.bufs.clone().as_bytes()
+    }
+}
+
+impl Stream for Body {
+    type Item = Bytes;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        if let Some(data) = self.bufs.pop() {
+            Poll::Ready(Some(data))
+        } else {
+            Poll::Ready(None)
         }
     }
 }
 
-impl Default for Body {
-    fn default() -> Self {
-        Body::Bytes(Bytes::new())
-    }
-}
+impl http_body::Body for Body {
+    type Data = Bytes;
+    type Error = Infallible;
 
-impl PartialEq<[u8]> for Body {
-    fn eq(&self, other: &[u8]) -> bool {
-        match self {
-            Body::Bytes(bytes) => bytes == other,
-            Body::Stream(bufs) => bufs.concat() == other,
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        if let Some(data) = self.bufs.pop() {
+            let frame = Frame::data(data);
+            Poll::Ready(Some(Ok(frame)))
+        } else {
+            Poll::Ready(None)
         }
     }
 }
 
 impl From<Bytes> for Body {
     fn from(value: Bytes) -> Self {
-        Self::Bytes(value)
-    }
-}
-
-impl From<Vec<Bytes>> for Body {
-    fn from(value: Vec<Bytes>) -> Self {
-        Self::Stream(value)
+        Self::raw(value)
     }
 }

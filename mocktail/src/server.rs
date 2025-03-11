@@ -1,9 +1,3 @@
-use std::{
-    cell::OnceCell,
-    net::{SocketAddr, TcpStream},
-    sync::{Arc, RwLock, RwLockWriteGuard},
-    time::Duration,
-};
 use http_body::Body;
 use hyper::{body::Incoming, service::Service};
 use hyper_util::{
@@ -11,14 +5,20 @@ use hyper_util::{
     server::{conn, graceful::GracefulShutdown},
 };
 use rand::Rng;
+use std::{
+    cell::OnceCell,
+    net::{SocketAddr, TcpStream},
+    sync::{Arc, RwLock, RwLockWriteGuard},
+    time::Duration,
+};
 use tokio::{net::TcpListener, sync::watch};
 use tracing::{debug, error, info, warn};
 use url::Url;
 
-use crate::{Error, Mock, MockSet, Then, When};
-
-mod service;
-use service::{GrpcMockService, HttpMockService};
+use crate::{
+    service::{GrpcMockService, HttpMockService},
+    Error, Mock, MockSet, Then, When,
+};
 
 /// A mock server.
 pub struct MockServer {
@@ -31,8 +31,8 @@ pub struct MockServer {
 }
 
 impl MockServer {
-    /// Creates a new HTTP [`MockServer`].
-    pub fn http(name: &'static str) -> Self {
+    /// Creates a new [`MockServer`].
+    pub fn new(name: &'static str) -> Self {
         let (shutdown_tx, _) = watch::channel(());
         Self {
             name,
@@ -44,19 +44,13 @@ impl MockServer {
         }
     }
 
-    /// Creates a new gRPC [`MockServer`].
-    pub fn grpc(name: &'static str) -> Self {
-        let (shutdown_tx, _) = watch::channel(());
-        Self {
-            name,
-            kind: ServerKind::Grpc,
-            addr: OnceCell::new(),
-            base_url: OnceCell::new(),
-            mocks: Arc::new(RwLock::new(MockSet::default())),
-            shutdown_tx,
-        }
+    /// Sets the server type to gRPC.
+    pub fn grpc(mut self) -> Self {
+        self.kind = ServerKind::Grpc;
+        self
     }
 
+    /// Sets the server mocks.
     pub fn with_mocks(mut self, mocks: MockSet) -> Self {
         self.mocks = Arc::new(RwLock::new(mocks));
         self
@@ -75,21 +69,11 @@ impl MockServer {
         match self.kind {
             ServerKind::Http => {
                 let service = HttpMockService::new(self.mocks.clone());
-                tokio::spawn(run_server(
-                    ConnectionKind::Http1OrHttp2,
-                    listener,
-                    service,
-                    shutdown_rx,
-                ));
+                tokio::spawn(run_server(listener, self.kind, service, shutdown_rx));
             }
             ServerKind::Grpc => {
                 let service = GrpcMockService::new(self.mocks.clone());
-                tokio::spawn(run_server(
-                    ConnectionKind::Http2,
-                    listener,
-                    service,
-                    shutdown_rx,
-                ));
+                tokio::spawn(run_server(listener, self.kind, service, shutdown_rx));
             }
         };
         // Wait for server to become ready
@@ -162,6 +146,7 @@ impl MockServer {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 enum ServerKind {
     Http,
     Grpc,
@@ -176,15 +161,10 @@ impl std::fmt::Display for ServerKind {
     }
 }
 
-enum ConnectionKind {
-    Http1OrHttp2,
-    Http2,
-}
-
 /// Runs the main server loop to accept and serve connections.
 async fn run_server<S, B>(
-    connection_kind: ConnectionKind,
     listener: TcpListener,
+    server_kind: ServerKind,
     service: S,
     mut shutdown_rx: watch::Receiver<()>,
 ) -> Result<(), Error>
@@ -197,9 +177,9 @@ where
     B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     let executor = TokioExecutor::new();
-    let builder = match connection_kind {
-        ConnectionKind::Http1OrHttp2 => conn::auto::Builder::new(executor),
-        ConnectionKind::Http2 => conn::auto::Builder::new(executor).http2_only(),
+    let builder = match server_kind {
+        ServerKind::Http => conn::auto::Builder::new(executor),
+        ServerKind::Grpc => conn::auto::Builder::new(executor).http2_only(),
     };
     let graceful = GracefulShutdown::new();
 

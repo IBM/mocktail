@@ -1,6 +1,6 @@
 /// A representation of HTTP headers.
 #[derive(Default, Debug, Clone, PartialEq)]
-pub struct Headers(Vec<(String, String)>);
+pub struct Headers(Vec<(HeaderName, HeaderValue)>);
 
 impl Headers {
     /// Creates an empty headers.
@@ -19,16 +19,16 @@ impl Headers {
     }
 
     /// Inserts a header.
-    pub fn insert(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        let name: String = name.into();
-        let value: String = value.into();
+    pub fn insert(&mut self, name: impl Into<HeaderName>, value: impl Into<HeaderValue>) {
+        let name: HeaderName = name.into();
+        let value: HeaderValue = value.into();
         if !self.contains(&name, &value) {
             self.0.push((name, value));
         }
     }
 
     /// Gets a header by name.
-    pub fn get(&self, name: &str) -> Option<&(String, String)> {
+    pub fn get(&self, name: &str) -> Option<&(HeaderName, HeaderValue)> {
         self.0.iter().find(|(key, _)| key == name)
     }
 
@@ -42,38 +42,44 @@ impl Headers {
         self.0.clear()
     }
 
-    /// Returns `true` if the headers contains a header with this name.
+    /// Returns true if the headers contains a header with this name.
     pub fn contains_name(&self, name: &str) -> bool {
         self.0.iter().any(|(key, _)| key == name)
     }
 
-    /// Returns `true` if the headers contains the header.
+    /// Returns true if the headers contains the header.
     pub fn contains(&self, name: &str, value: &str) -> bool {
         self.0
             .iter()
-            .any(|header| header.0 == name && header.1 == value)
+            .any(|header| *header.0 == name && *header.1 == value)
     }
 
-    /// Returns `true` if the headers are a subset of another,
-    /// i.e., `other` contains at least all the values in `self`.
+    /// Returns true if the headers are a subset of another,
+    /// i.e., other contains at least all the values in self.
     pub fn is_subset(&self, other: &Headers) -> bool {
         self.0.iter().all(|header| other.0.contains(header))
     }
 
-    /// Returns `true` if the headers are a superset of another,
-    /// i.e., `self` contains at least all the values in `other`.
+    /// Returns true if the headers are a superset of another,
+    /// i.e., self contains at least all the values in other.
     pub fn is_superset(&self, other: &Headers) -> bool {
         other.is_subset(self)
     }
 
+    /// Returns true if the headers contains a content-type header
+    /// equal to value.
+    pub fn has_content_type(&self, value: &str) -> bool {
+        self.contains("content-type", value)
+    }
+
     /// Returns an iterator over the headers.
-    pub fn iter(&self) -> std::slice::Iter<'_, (String, String)> {
+    pub fn iter(&self) -> std::slice::Iter<'_, (HeaderName, HeaderValue)> {
         self.0.iter()
     }
 }
 
 impl IntoIterator for Headers {
-    type Item = (String, String);
+    type Item = (HeaderName, HeaderValue);
 
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -82,11 +88,12 @@ impl IntoIterator for Headers {
     }
 }
 
-impl<T> FromIterator<(T, T)> for Headers
+impl<T, U> FromIterator<(T, U)> for Headers
 where
-    T: Into<String>,
+    T: Into<HeaderName>,
+    U: Into<HeaderValue>,
 {
-    fn from_iter<I: IntoIterator<Item = (T, T)>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = (T, U)>>(iter: I) -> Self {
         Self(
             iter.into_iter()
                 .map(|(key, value)| (key.into(), value.into()))
@@ -99,12 +106,8 @@ impl From<Headers> for http::HeaderMap {
     fn from(value: Headers) -> Self {
         value
             .0
-            .iter()
-            .map(|(key, value)| {
-                let name = http::HeaderName::try_from(key).unwrap();
-                let value = http::HeaderValue::try_from(value).unwrap();
-                (name, value)
-            })
+            .into_iter()
+            .map(|(name, value)| (name.into(), value.into()))
             .collect()
     }
 }
@@ -114,11 +117,18 @@ impl From<http::HeaderMap> for Headers {
         Self(
             value
                 .into_iter()
-                .map(|(key, value)| {
-                    let key = key.unwrap().to_string();
-                    let value = value.to_str().unwrap().to_string();
-                    (key, value)
-                })
+                .map(|(name, value)| (name.unwrap().into(), value.into()))
+                .collect::<Vec<_>>(),
+        )
+    }
+}
+
+impl From<&http::HeaderMap> for Headers {
+    fn from(value: &http::HeaderMap) -> Self {
+        Self(
+            value
+                .iter()
+                .map(|(name, value)| (name.into(), value.into()))
                 .collect::<Vec<_>>(),
         )
     }
@@ -127,5 +137,123 @@ impl From<http::HeaderMap> for Headers {
 impl From<Headers> for tonic::metadata::MetadataMap {
     fn from(value: Headers) -> Self {
         tonic::metadata::MetadataMap::from_headers(value.into())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct HeaderName(String);
+
+impl std::ops::Deref for HeaderName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl PartialEq<String> for HeaderName {
+    fn eq(&self, other: &String) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<str> for HeaderName {
+    fn eq(&self, other: &str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl From<String> for HeaderName {
+    fn from(value: String) -> Self {
+        HeaderName(value)
+    }
+}
+
+impl From<&str> for HeaderName {
+    fn from(value: &str) -> Self {
+        HeaderName(value.into())
+    }
+}
+
+impl AsRef<str> for HeaderName {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl From<HeaderName> for http::HeaderName {
+    fn from(value: HeaderName) -> Self {
+        http::HeaderName::try_from(value.0).unwrap()
+    }
+}
+
+impl From<http::HeaderName> for HeaderName {
+    fn from(value: http::HeaderName) -> Self {
+        HeaderName(value.to_string())
+    }
+}
+
+impl From<&http::HeaderName> for HeaderName {
+    fn from(value: &http::HeaderName) -> Self {
+        HeaderName(value.to_string())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct HeaderValue(String);
+
+impl std::ops::Deref for HeaderValue {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl PartialEq<String> for HeaderValue {
+    fn eq(&self, other: &String) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<str> for HeaderValue {
+    fn eq(&self, other: &str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl From<String> for HeaderValue {
+    fn from(value: String) -> Self {
+        HeaderValue(value)
+    }
+}
+
+impl From<&str> for HeaderValue {
+    fn from(value: &str) -> Self {
+        HeaderValue(value.into())
+    }
+}
+
+impl AsRef<str> for HeaderValue {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl From<HeaderValue> for http::HeaderValue {
+    fn from(value: HeaderValue) -> Self {
+        http::HeaderValue::try_from(value.0).unwrap()
+    }
+}
+
+impl From<http::HeaderValue> for HeaderValue {
+    fn from(value: http::HeaderValue) -> Self {
+        HeaderValue(value.to_str().unwrap().to_string())
+    }
+}
+
+impl From<&http::HeaderValue> for HeaderValue {
+    fn from(value: &http::HeaderValue) -> Self {
+        HeaderValue(value.to_str().unwrap().to_string())
     }
 }

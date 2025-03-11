@@ -8,8 +8,6 @@ use tracing::debug;
 
 use crate::{MockSet, Request};
 
-//type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
-
 #[derive(Debug, Clone)]
 pub struct HttpMockService {
     pub mocks: Arc<RwLock<MockSet>>,
@@ -32,26 +30,27 @@ impl Service<http::Request<Incoming>> for HttpMockService {
         let mocks = self.mocks.clone();
         let fut = async move {
             debug!("handling request");
-            // Collect request body
-            let body = body.collect().await.unwrap().to_bytes();
-            // Match to mock and send response
-            let request = Request::from_parts(parts).with_body(body);
-            let response = mocks.read().unwrap().match_to_response(&request);
-            if let Some(response) = response {
-                let response = http::Response::builder()
-                    .status(response.status.as_http())
-                    .body(response.body().to_hyper_boxed())
-                    .unwrap();
-                // *response.headers_mut() = mock.response.headers().clone();
-                // TODO: error message
-                Ok(response)
-            } else {
-                // Request not matched to mock, send error response
-                Ok(http::Response::builder()
-                    .status(http::StatusCode::NOT_FOUND)
-                    .body(empty_body())
-                    .unwrap())
-            }
+            // // Collect request body
+            // let body = body.collect().await.unwrap().to_bytes();
+            // // Match to mock and send response
+            // let request = Request::from_parts(parts).with_body(body);
+            // let response = mocks.read().unwrap().match_to_response(&request);
+            // if let Some(response) = response {
+            //     let response = http::Response::builder()
+            //         .status(response.status.as_http())
+            //         .body(response.body().to_hyper_boxed())
+            //         .unwrap();
+            //     // *response.headers_mut() = mock.response.headers().clone();
+            //     // TODO: error message
+            //     Ok(response)
+            // } else {
+            //     // Request not matched to mock, send error response
+            //     Ok(http::Response::builder()
+            //         .status(http::StatusCode::NOT_FOUND)
+            //         .body(empty_body())
+            //         .unwrap())
+            // }
+            todo!()
         };
         Box::pin(fut)
     }
