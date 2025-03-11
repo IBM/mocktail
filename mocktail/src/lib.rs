@@ -12,7 +12,7 @@ pub use mock_set::MockSet;
 mod request;
 pub use request::Request;
 mod response;
-pub use response::Response;
+pub use response::{Response, StatusCode};
 mod when;
 pub use when::When;
 mod then;
@@ -25,7 +25,7 @@ mod service;
 pub mod prelude {
     pub use crate::{
         matchers::*, Body, HeaderName, HeaderValue, Headers, Mock, MockServer, MockSet, Request,
-        Response, Then, When,
+        Response, StatusCode, Then, When,
     };
 }
 
