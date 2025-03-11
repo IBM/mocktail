@@ -1,10 +1,11 @@
+use anyhow::Error;
 use mocktail::prelude::*;
+use mocktail_tests::pb::{hello_client::HelloClient, HelloClientStreamingResponse, HelloRequest};
 use test_log::test;
-use tests::pb::{hello_client::HelloClient, HelloClientStreamingResponse, HelloRequest};
 use tonic::transport::Channel;
 
 #[test(tokio::test)]
-async fn test_client_streaming() -> Result<(), anyhow::Error> {
+async fn test_client_streaming() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloClientStreaming").pb_stream([

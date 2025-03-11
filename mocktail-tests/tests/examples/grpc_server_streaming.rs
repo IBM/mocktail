@@ -1,12 +1,13 @@
+use anyhow::Error;
 use futures::StreamExt;
 use mocktail::prelude::*;
+use mocktail_tests::pb::{hello_client::HelloClient, HelloResponse, HelloServerStreamingRequest};
 use test_log::test;
-use tests::pb::{hello_client::HelloClient, HelloResponse, HelloServerStreamingRequest};
 use tonic::transport::Channel;
 use tracing::debug;
 
 #[test(tokio::test)]
-async fn test_server_streaming() -> Result<(), anyhow::Error> {
+async fn test_server_streaming() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloServerStreaming")

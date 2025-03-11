@@ -1,5 +1,5 @@
 [package]
-name = "tests"
+name = "mocktail-tests"
 edition = "2021"
 
 [dependencies]

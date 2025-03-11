@@ -1,16 +1,17 @@
+use anyhow::Error;
 use mocktail::prelude::*;
+use mocktail_tests::pb::{hello_client::HelloClient, HelloRequest, HelloResponse};
 use test_log::test;
-use tests::pb::{hello_client::HelloClient, HelloRequest, HelloResponse};
 use tonic::transport::Channel;
 
 #[test(tokio::test)]
-async fn test_unary() -> Result<(), anyhow::Error> {
+async fn test_unary() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloUnary")
-            .pb(HelloRequest { name: "Dan".into() });
+            .pb(HelloRequest { name: "dan".into() });
         then.pb(HelloResponse {
-            message: "Hello Dan!".into(),
+            message: "hello dan!".into(),
         });
     });
 
@@ -23,10 +24,16 @@ async fn test_unary() -> Result<(), anyhow::Error> {
     let mut client = HelloClient::new(channel);
 
     let result = client
-        .hello_unary(HelloRequest { name: "Dan".into() })
+        .hello_unary(HelloRequest { name: "dan".into() })
         .await;
-    dbg!(&result);
     assert!(result.is_ok());
+    let res = result.unwrap().into_inner();
+    assert_eq!(
+        res,
+        HelloResponse {
+            message: "hello dan!".into(),
+        }
+    );
 
     Ok(())
 }
@@ -36,9 +43,9 @@ async fn test_unary_errors() -> Result<(), anyhow::Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
         when.path("/example.Hello/HelloUnary").pb(HelloRequest {
-            name: "InternalServerError".into(),
+            name: "unexpected_error".into(),
         });
-        then.internal_server_error().message("ugh");
+        then.internal_server_error().message("unexpected error");
     });
 
     let server = MockServer::new("example.Hello").grpc().with_mocks(mocks);
@@ -49,23 +56,24 @@ async fn test_unary_errors() -> Result<(), anyhow::Error> {
         .await?;
     let mut client = HelloClient::new(channel);
 
-    // Mocked error response
     let result = client
         .hello_unary(HelloRequest {
-            name: "InternalServerError".into(),
+            name: "unexpected_error".into(),
         })
         .await;
-    dbg!(&result);
-    assert!(result.is_err_and(|e| { e.code() == tonic::Code::Internal }));
+    assert!(result.is_err_and(|e| {
+        e.code() == tonic::Code::Internal && e.message() == "unexpected error"
+    }));
 
     // Mock not found
     let result = client
         .hello_unary(HelloRequest {
-            name: "IDontExist".into(),
+            name: "does_not_exist".into(),
         })
         .await;
-    dbg!(&result);
-    assert!(result.is_err_and(|e| e.code() == tonic::Code::NotFound));
+    assert!(
+        result.is_err_and(|e| e.code() == tonic::Code::NotFound && e.message() == "mock not found")
+    );
 
     Ok(())
 }

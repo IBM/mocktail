@@ -28,8 +28,11 @@ impl Headers {
     }
 
     /// Gets a header by name.
-    pub fn get(&self, name: &str) -> Option<&(HeaderName, HeaderValue)> {
-        self.0.iter().find(|(key, _)| key == name)
+    pub fn get(&self, name: &str) -> Option<&HeaderValue> {
+        self.0
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value)
     }
 
     /// Removes a header by name.
@@ -66,10 +69,17 @@ impl Headers {
         other.is_subset(self)
     }
 
-    /// Returns true if the headers contains a content-type header
-    /// equal to value.
+    /// Returns true if the headers contains a `content-type` header equal to value.
     pub fn has_content_type(&self, value: &str) -> bool {
         self.contains("content-type", value)
+    }
+
+    /// Returns true if the headers contains a `transfer-encoding` header including `chunked`.
+    pub fn has_chunked_encoding(&self) -> bool {
+        if let Some(value) = self.get("transfer-encoding") {
+            return value.contains("chunked");
+        }
+        false
     }
 
     /// Returns an iterator over the headers.
@@ -159,7 +169,7 @@ impl PartialEq<String> for HeaderName {
 
 impl PartialEq<str> for HeaderName {
     fn eq(&self, other: &str) -> bool {
-        &self.0 == other
+        self.0 == other
     }
 }
 
@@ -184,6 +194,12 @@ impl AsRef<str> for HeaderName {
 impl From<HeaderName> for http::HeaderName {
     fn from(value: HeaderName) -> Self {
         http::HeaderName::try_from(value.0).unwrap()
+    }
+}
+
+impl From<&HeaderName> for http::HeaderName {
+    fn from(value: &HeaderName) -> Self {
+        http::HeaderName::try_from(value.0.clone()).unwrap()
     }
 }
 
@@ -218,7 +234,7 @@ impl PartialEq<String> for HeaderValue {
 
 impl PartialEq<str> for HeaderValue {
     fn eq(&self, other: &str) -> bool {
-        &self.0 == other
+        self.0 == other
     }
 }
 
@@ -243,6 +259,12 @@ impl AsRef<str> for HeaderValue {
 impl From<HeaderValue> for http::HeaderValue {
     fn from(value: HeaderValue) -> Self {
         http::HeaderValue::try_from(value.0).unwrap()
+    }
+}
+
+impl From<&HeaderValue> for http::HeaderValue {
+    fn from(value: &HeaderValue) -> Self {
+        http::HeaderValue::try_from(value.0.clone()).unwrap()
     }
 }
 

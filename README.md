@@ -25,7 +25,7 @@ mocktail is a minimal framework for mocking HTTP and gRPC services in Rust with 
     mocktail = { git = "https://github.com/IBM/mocktail.git", version = "0.2.0-alpha" }
     ```
 
-2. See [mocktail-test](/mocktail-test/) crate for usage examples.
+2. See [mocktail-tests](/mocktail-tests/) crate for usage examples.
 
 # Examples
-See [mocktail-test](/mocktail-test/) crate.
+See [mocktail-tests](/mocktail-tests/) crate.
