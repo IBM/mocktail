@@ -71,13 +71,8 @@ impl Headers {
 
     /// Returns true if the headers contains a `content-type` header equal to value.
     pub fn has_content_type(&self, value: &str) -> bool {
-        self.contains("content-type", value)
-    }
-
-    /// Returns true if the headers contains a `transfer-encoding` header including `chunked`.
-    pub fn has_chunked_encoding(&self) -> bool {
-        if let Some(value) = self.get("transfer-encoding") {
-            return value.contains("chunked");
+        if let Some(content_type) = self.get("content-type") {
+            return content_type.starts_with(value);
         }
         false
     }
