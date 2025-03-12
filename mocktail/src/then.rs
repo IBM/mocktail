@@ -30,9 +30,9 @@ impl Then {
     }
 
     /// HTTP status code.
-    pub fn status(self, status: StatusCode) -> Self {
+    pub fn status(self, status: impl Into<StatusCode>) -> Self {
         self.update(|r| {
-            r.status = status;
+            r.status = status.into();
         });
         self
     }
