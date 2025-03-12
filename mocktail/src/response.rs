@@ -148,6 +148,14 @@ impl PartialEq<StatusCode> for u16 {
     }
 }
 
+impl TryFrom<u16> for StatusCode {
+    type Error = Error;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        Self::from_u16(value)
+    }
+}
+
 impl From<StatusCode> for u16 {
     fn from(status: StatusCode) -> u16 {
         status.0.get()
