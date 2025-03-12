@@ -1,3 +1,4 @@
+//! Mock services
 pub mod grpc;
 pub use grpc::GrpcMockService;
 pub mod http;

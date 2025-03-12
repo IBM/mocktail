@@ -1,4 +1,5 @@
-/// A representation of HTTP headers.
+//! Headers
+/// Represents HTTP headers.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Headers(Vec<(HeaderName, HeaderValue)>);
 
@@ -145,6 +146,7 @@ impl From<Headers> for tonic::metadata::MetadataMap {
     }
 }
 
+/// Represents a HTTP header name.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct HeaderName(String);
 
@@ -210,6 +212,7 @@ impl From<&http::HeaderName> for HeaderName {
     }
 }
 
+/// Represents a HTTP header value.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct HeaderValue(String);
 

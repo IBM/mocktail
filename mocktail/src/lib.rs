@@ -1,34 +1,34 @@
 #![doc = include_str!("../README.md")]
-mod body;
-pub use body::Body;
+pub mod body;
 mod headers;
-pub use headers::*;
-mod matchers;
-pub use matchers::*;
+pub use headers::{HeaderName, HeaderValue, Headers};
+pub mod matchers;
 mod mock;
 pub use mock::Mock;
+pub mod mock_builder;
 mod mock_set;
 pub use mock_set::MockSet;
 mod request;
-pub use request::Request;
+pub use request::{Method, Request};
 mod response;
 pub use response::{Response, StatusCode};
-mod when;
-pub use when::When;
-mod then;
-pub use then::Then;
-mod server;
-pub use server::MockServer;
-mod buf_list;
-mod ext;
-mod service;
+pub mod server;
 pub mod prelude {
     pub use crate::{
-        matchers::*, Body, HeaderName, HeaderValue, Headers, Mock, MockServer, MockSet, Request,
-        Response, StatusCode, Then, When,
+        body::Body,
+        headers::{HeaderName, HeaderValue, Headers},
+        matchers::*,
+        mock::Mock,
+        mock_set::MockSet,
+        request::{Method, Request},
+        response::{Response, StatusCode},
+        server::MockServer,
     };
 }
+mod ext;
+mod service;
 
+/// Represents errors that can occur while serving mocks.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("invalid: {0}")]

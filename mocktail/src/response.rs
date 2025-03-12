@@ -1,9 +1,10 @@
+//! Mock response
 use std::num::NonZeroU16;
 
 use super::{body::Body, headers::Headers};
 use crate::{ext::CodeExt, Error};
 
-/// A representation of a HTTP response.
+/// Represents a HTTP response.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Response {
     pub status: StatusCode,
@@ -73,7 +74,7 @@ impl Default for Response {
     }
 }
 
-/// A representation of a HTTP status code.
+/// Represents a HTTP status code.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct StatusCode(NonZeroU16);
 

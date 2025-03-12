@@ -1,3 +1,4 @@
+//! Extension traits
 use bytes::{BufMut, Bytes, BytesMut};
 use http::status::InvalidStatusCode;
 use prost::Message;

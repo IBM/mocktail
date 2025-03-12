@@ -1,9 +1,11 @@
+//! When
 use std::{cell::Cell, rc::Rc};
 
 use bytes::Bytes;
 
 use crate::{
-    body::Body, headers::Headers, matchers, request::Method, HeaderName, HeaderValue, Matcher,
+    body::Body, headers::HeaderName, headers::HeaderValue, headers::Headers, matchers,
+    matchers::Matcher, request::Method,
 };
 
 /// A request match conditions builder.

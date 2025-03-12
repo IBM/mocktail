@@ -1,6 +1,7 @@
-use crate::{Body, Headers};
+//! Mock request
+use crate::{body::Body, headers::Headers};
 
-/// A representation of a HTTP request.
+/// Represents a HTTP request.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request {
     pub method: Method,
@@ -63,7 +64,7 @@ impl Request {
     }
 }
 
-/// A representation of an HTTP method.
+/// Represents a HTTP method.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Method {

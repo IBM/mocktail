@@ -1,3 +1,4 @@
+//! Mock HTTP service
 use std::{
     convert::Infallible,
     sync::{Arc, RwLock},
@@ -13,10 +14,11 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::debug;
 
-use crate::{MockSet, Request};
+use crate::{mock_set::MockSet, request::Request};
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
+/// Mock HTTP service.
 #[derive(Debug, Clone)]
 pub struct HttpMockService {
     pub mocks: Arc<RwLock<MockSet>>,

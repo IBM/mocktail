@@ -1,12 +1,16 @@
+//! Mock body
 use std::{collections::vec_deque, convert::Infallible, pin::Pin, task::Poll};
 
 use bytes::{Buf, Bytes};
 use futures::Stream;
 use http_body::Frame;
 
-use crate::{buf_list::BufList, ext::MessageExt};
+use crate::ext::MessageExt;
 
-/// A mock body.
+mod buf_list;
+use buf_list::BufList;
+
+/// The body of a mock request or response.
 #[derive(Default, Debug, Clone)]
 pub struct Body {
     bufs: BufList,

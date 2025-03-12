@@ -1,3 +1,4 @@
+//! Mock gRPC service
 use std::{
     convert::Infallible,
     sync::{Arc, RwLock},
@@ -14,8 +15,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::body::BoxBody;
 use tracing::debug;
 
-use crate::{Headers, MockSet, Request};
+use crate::{headers::Headers, mock_set::MockSet, request::Request};
 
+/// Mock gRPC service.
 #[derive(Debug, Clone)]
 pub struct GrpcMockService {
     pub mocks: Arc<RwLock<MockSet>>,

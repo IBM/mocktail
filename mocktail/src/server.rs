@@ -1,3 +1,4 @@
+//! Mock server
 use http_body::Body;
 use hyper::{body::Incoming, service::Service};
 use hyper_util::{
@@ -16,8 +17,11 @@ use tracing::{debug, error, info, warn};
 use url::Url;
 
 use crate::{
+    mock::Mock,
+    mock_builder::{Then, When},
+    mock_set::MockSet,
     service::{GrpcMockService, HttpMockService},
-    Error, Mock, MockSet, Then, When,
+    Error,
 };
 
 /// A mock server.

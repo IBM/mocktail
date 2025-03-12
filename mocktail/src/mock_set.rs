@@ -1,5 +1,10 @@
-use super::{request::Request, response::Response, Mock};
-use crate::{Then, When};
+//! Mock set
+use crate::{
+    mock::Mock,
+    mock_builder::{Then, When},
+    request::Request,
+    response::Response,
+};
 
 /// A set of mocks.
 #[derive(Default, Debug)]

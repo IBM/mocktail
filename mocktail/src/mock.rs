@@ -1,4 +1,10 @@
-use crate::{Matcher, Request, Response, Then, When};
+//! Mock
+use crate::{
+    matchers::Matcher,
+    mock_builder::{Then, When},
+    request::Request,
+    response::Response,
+};
 
 const DEFAULT_PRIORITY: u8 = 5;
 
