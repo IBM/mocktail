@@ -232,7 +232,7 @@ where
     Ok(())
 }
 
-fn find_available_port() -> Option<u16> {
+pub fn find_available_port() -> Option<u16> {
     let mut rng = rand::rng();
     loop {
         let port: u16 = rng.random_range(40000..60000);

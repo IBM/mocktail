@@ -13,6 +13,7 @@ pub use request::{Method, Request};
 mod response;
 pub use response::{Response, StatusCode};
 pub mod server;
+pub use server::find_available_port;
 pub mod prelude {
     pub use crate::{
         body::Body,
