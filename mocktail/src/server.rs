@@ -107,6 +107,10 @@ impl MockServer {
         self.addr.get()
     }
 
+    pub fn hostname(&self) -> Option<String> {
+        self.addr().map(|addr| addr.ip().to_string())
+    }
+
     pub fn port(&self) -> Option<u16> {
         self.addr.get().map(|v| v.port())
     }
