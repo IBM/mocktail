@@ -1,6 +1,6 @@
 use anyhow::Error;
 use eventsource_stream::{Event, Eventsource};
-use futures::{stream, StreamExt};
+use futures::{stream, Stream, StreamExt};
 use mocktail::prelude::*;
 use serde::{Deserialize, Serialize};
 use test_log::test;
@@ -20,7 +20,7 @@ pub struct HelloResponse {
 async fn test_json_lines_stream() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
-        when.path("/hello").json_lines_stream([
+        when.post().path("/hello").json_lines_stream([
             HelloRequest { name: "dan".into() },
             HelloRequest {
                 name: "mateus".into(),
@@ -41,30 +41,22 @@ async fn test_json_lines_stream() -> Result<(), Error> {
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
 
-    let chunks = [
+    let input_stream = json_lines_stream([
         HelloRequest { name: "dan".into() },
         HelloRequest {
             name: "mateus".into(),
         },
-    ]
-    .into_iter()
-    .map(|msg| {
-        let mut bytes = serde_json::to_vec(&msg).unwrap();
-        bytes.push(b'\n');
-        Ok(bytes)
-    })
-    .collect::<Vec<Result<_, std::io::Error>>>();
-
+    ]);
     let response = client
         .post(server.url("/hello"))
-        .body(reqwest::Body::wrap_stream(stream::iter(chunks)))
+        .body(reqwest::Body::wrap_stream(input_stream))
         .send()
         .await?;
     dbg!(&response);
     assert_eq!(response.status(), http::StatusCode::OK);
 
-    let mut stream = response.bytes_stream();
     let mut responses = Vec::with_capacity(2);
+    let mut stream = response.bytes_stream();
     while let Some(Ok(msg)) = stream.next().await {
         debug!("recv: {msg:?}");
         responses.push(msg);
@@ -80,7 +72,7 @@ async fn test_json_lines_stream() -> Result<(), Error> {
 async fn test_bytes_stream() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
-        when.path("/hello").bytes_stream(["dan", "mateus"]);
+        when.post().path("/hello").bytes_stream(["dan", "mateus"]);
         then.bytes_stream(["hello dan!", "hello mateus!"]);
     });
 
@@ -102,8 +94,8 @@ async fn test_bytes_stream() -> Result<(), Error> {
     dbg!(&response);
     assert_eq!(response.status(), http::StatusCode::OK);
 
-    let mut stream = response.bytes_stream();
     let mut responses = Vec::with_capacity(2);
+    let mut stream = response.bytes_stream();
     while let Some(Ok(msg)) = stream.next().await {
         debug!("recv: {msg:?}");
         responses.push(msg);
@@ -119,7 +111,7 @@ async fn test_bytes_stream() -> Result<(), Error> {
 async fn test_sse_stream() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
-        when.path("/sse-stream");
+        when.post().path("/sse-stream");
         then.bytes_stream([
             "data: msg1\n\n",
             "data: msg2\n\n",
@@ -147,4 +139,18 @@ async fn test_sse_stream() -> Result<(), Error> {
     dbg!(&events);
 
     Ok(())
+}
+
+fn json_lines_stream(
+    messages: impl IntoIterator<Item = impl Serialize>,
+) -> impl Stream<Item = Result<Vec<u8>, std::io::Error>> {
+    let chunks = messages
+        .into_iter()
+        .map(|msg| {
+            let mut bytes = serde_json::to_vec(&msg).unwrap();
+            bytes.push(b'\n');
+            Ok(bytes)
+        })
+        .collect::<Vec<Result<_, std::io::Error>>>();
+    stream::iter(chunks)
 }

@@ -17,7 +17,8 @@ pub struct HelloResponse {
 async fn test_unary() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
-        when.path("/hello")
+        when.post()
+            .path("/hello")
             .json(HelloRequest { name: "dan".into() });
         then.json(HelloResponse {
             message: "hello dan!".into(),
@@ -59,7 +60,7 @@ async fn test_unary() -> Result<(), Error> {
 async fn test_unary_errors() -> Result<(), Error> {
     let mut mocks = MockSet::new();
     mocks.mock(|when, then| {
-        when.path("/hello").json(HelloRequest {
+        when.post().path("/hello").json(HelloRequest {
             name: "unexpected_error".into(),
         });
         then.internal_server_error().message("unexpected error");

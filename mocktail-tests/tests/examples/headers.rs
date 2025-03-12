@@ -8,22 +8,21 @@ async fn test_headers() -> Result<(), Error> {
 
     // Mock with header matcher
     mocks.mock(|when, then| {
-        when.path("/header").header("header1", "value1");
+        when.post().path("/header").header("header1", "value1");
         then.text("you had the header!");
     });
 
     // Mock with headers matcher
     mocks.mock(|when, then| {
-        when.path("/headers").headers(Headers::from_iter([
-            ("header1", "value1"),
-            ("header2", "value2"),
-        ]));
+        when.post()
+            .path("/headers")
+            .headers([("header1", "value1"), ("header2", "value2")]);
         then.text("you had the headers!");
     });
 
     // Mock with header_exists matcher
     mocks.mock(|when, then| {
-        when.path("/header-exists").header_exists("header1");
+        when.post().path("/header-exists").header_exists("header1");
         then.text("you had the header!");
     });
 
