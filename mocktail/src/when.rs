@@ -2,7 +2,9 @@ use std::{cell::Cell, rc::Rc};
 
 use bytes::Bytes;
 
-use crate::{body::Body, headers::Headers, matchers, request::Method, Matcher};
+use crate::{
+    body::Body, headers::Headers, matchers, request::Method, HeaderName, HeaderValue, Matcher,
+};
 
 /// A request match conditions builder.
 #[derive(Default, Clone)]
@@ -54,14 +56,22 @@ impl When {
     }
 
     /// Headers.
-    pub fn headers(self, headers: Headers) -> Self {
-        self.push(matchers::headers(headers));
+    pub fn headers<T, U>(self, headers: impl IntoIterator<Item = (T, U)>) -> Self
+    where
+        T: Into<HeaderName>,
+        U: Into<HeaderValue>,
+    {
+        self.push(matchers::headers(Headers::from_iter(headers)));
         self
     }
 
     /// Headers exact.
-    pub fn headers_exact(self, headers: Headers) -> Self {
-        self.push(matchers::headers_exact(headers));
+    pub fn headers_exact<T, U>(self, headers: impl IntoIterator<Item = (T, U)>) -> Self
+    where
+        T: Into<HeaderName>,
+        U: Into<HeaderValue>,
+    {
+        self.push(matchers::headers_exact(Headers::from_iter(headers)));
         self
     }
 
@@ -106,7 +116,8 @@ impl When {
 
     /// Text body.
     pub fn text(self, body: impl Into<String>) -> Self {
-        self.push(matchers::body(Body::text(body)));
+        let body: String = body.into();
+        self.push(matchers::body(Body::bytes(body)));
         self
     }
 

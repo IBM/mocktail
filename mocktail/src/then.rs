@@ -30,9 +30,9 @@ impl Then {
     }
 
     /// HTTP status code.
-    pub fn status(self, status: StatusCode) -> Self {
+    pub fn status(self, status: impl Into<StatusCode>) -> Self {
         self.update(|r| {
-            r.status = status;
+            r.status = status.into();
         });
         self
     }
@@ -94,8 +94,9 @@ impl Then {
 
     /// Text body.
     pub fn text(self, body: impl Into<String>) -> Self {
+        let body: String = body.into();
         self.update(|r| {
-            r.body = Body::text(body);
+            r.body = Body::bytes(body);
         });
         self
     }
