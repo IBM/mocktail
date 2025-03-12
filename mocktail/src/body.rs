@@ -30,13 +30,6 @@ impl Body {
         Self { bufs }
     }
 
-    /// Creates a text body.
-    pub fn text(body: impl Into<String>) -> Self {
-        let text: String = body.into();
-        let bytes: Bytes = text.into();
-        Self { bufs: bytes.into() }
-    }
-
     /// Creates a JSON body.
     pub fn json(body: impl serde::Serialize) -> Self {
         let bytes = serde_json::to_vec(&body).unwrap();
@@ -67,9 +60,6 @@ impl Body {
         let bufs = messages.into_iter().map(|msg| msg.to_bytes()).collect();
         Self { bufs }
     }
-
-    // TODO
-    // pub fn sse_stream() -> Self {}
 
     /// Returns true if empty.
     pub fn is_empty(&self) -> bool {

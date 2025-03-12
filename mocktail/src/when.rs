@@ -106,7 +106,8 @@ impl When {
 
     /// Text body.
     pub fn text(self, body: impl Into<String>) -> Self {
-        self.push(matchers::body(Body::text(body)));
+        let body: String = body.into();
+        self.push(matchers::body(Body::bytes(body)));
         self
     }
 

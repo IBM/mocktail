@@ -94,8 +94,9 @@ impl Then {
 
     /// Text body.
     pub fn text(self, body: impl Into<String>) -> Self {
+        let body: String = body.into();
         self.update(|r| {
-            r.body = Body::text(body);
+            r.body = Body::bytes(body);
         });
         self
     }
