@@ -3,7 +3,7 @@ use http_body::Body;
 use hyper::{body::Incoming, service::Service};
 use hyper_util::{
     rt::{TokioExecutor, TokioIo},
-    server::{conn, graceful::GracefulShutdown},
+    server::conn,
 };
 use rand::Rng;
 use std::{
@@ -12,8 +12,8 @@ use std::{
     sync::{Arc, RwLock, RwLockWriteGuard},
     time::Duration,
 };
-use tokio::{net::TcpListener, sync::watch};
-use tracing::{debug, error, info, warn};
+use tokio::net::TcpListener;
+use tracing::{debug, error, info};
 use url::Url;
 
 use crate::{
@@ -31,20 +31,17 @@ pub struct MockServer {
     addr: OnceCell<SocketAddr>,
     base_url: OnceCell<Url>,
     mocks: Arc<RwLock<MockSet>>,
-    shutdown_tx: watch::Sender<()>,
 }
 
 impl MockServer {
     /// Creates a new [`MockServer`].
     pub fn new(name: &'static str) -> Self {
-        let (shutdown_tx, _) = watch::channel(());
         Self {
             name,
             kind: ServerKind::Http,
             addr: OnceCell::new(),
             base_url: OnceCell::new(),
             mocks: Arc::new(RwLock::new(MockSet::default())),
-            shutdown_tx,
         }
     }
 
@@ -69,15 +66,14 @@ impl MockServer {
         let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
         info!("starting {} [{}] server on {addr}", self.name(), &self.kind);
         let listener = TcpListener::bind(&addr).await?;
-        let shutdown_rx = self.shutdown_tx.subscribe();
         match self.kind {
             ServerKind::Http => {
                 let service = HttpMockService::new(self.mocks.clone());
-                tokio::spawn(run_server(listener, self.kind, service, shutdown_rx));
+                tokio::spawn(run_server(listener, self.kind, service));
             }
             ServerKind::Grpc => {
                 let service = GrpcMockService::new(self.mocks.clone());
-                tokio::spawn(run_server(listener, self.kind, service, shutdown_rx));
+                tokio::spawn(run_server(listener, self.kind, service));
             }
         };
         // Wait for server to become ready
@@ -93,10 +89,6 @@ impl MockServer {
         self.base_url.set(base_url).unwrap();
 
         Ok(())
-    }
-
-    pub fn shutdown(&self) {
-        let _ = self.shutdown_tx.send(());
     }
 
     pub fn name(&self) -> &str {
@@ -174,7 +166,6 @@ async fn run_server<S, B>(
     listener: TcpListener,
     server_kind: ServerKind,
     service: S,
-    mut shutdown_rx: watch::Receiver<()>,
 ) -> Result<(), Error>
 where
     S: Service<http::Request<Incoming>, Response = http::Response<B>> + Clone + Send + 'static,
@@ -184,52 +175,30 @@ where
     B::Data: Send + 'static,
     B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
-    let executor = TokioExecutor::new();
-    let builder = match server_kind {
-        ServerKind::Http => conn::auto::Builder::new(executor),
-        ServerKind::Grpc => conn::auto::Builder::new(executor).http2_only(),
-    };
-    let graceful = GracefulShutdown::new();
-
     // Spawn task to accept new connections
     tokio::spawn(async move {
         loop {
-            tokio::select! {
-                connection = listener.accept() => {
-                    let (stream, addr) = match connection {
-                        Ok(conn) => conn,
-                        Err(err) => {
-                            error!("connection accept error: {err}");
-                            continue;
-                        }
-                    };
-                    debug!("connection accepted: {addr}");
-                    let io = TokioIo::new(stream);
-                    let service = service.clone();
-                    let connection = graceful.watch(builder.serve_connection(io, service).into_owned());
-                    // Spawn task to serve connection
-                    tokio::spawn(async move {
-                        if let Err(err) = connection.await {
-                            error!("connection error: {err}");
-                        }
-                        debug!("connection dropped: {addr}");
-                    });
-                },
-                _ = shutdown_rx.changed() => {
-                    warn!("shutting down");
-                    drop(listener);
-                    break;
+            let (stream, addr) = match listener.accept().await {
+                Ok(conn) => conn,
+                Err(err) => {
+                    error!("connection accept error: {err}");
+                    continue;
                 }
-            }
-        }
-
-        tokio::select! {
-            _ = graceful.shutdown() => {
-                debug!("connections gracefully closed");
-            },
-            _ = tokio::time::sleep(std::time::Duration::from_secs(10)) => {
-                debug!("timed out waiting for connections to close");
-            }
+            };
+            debug!("connection accepted: {addr}");
+            let io = TokioIo::new(stream);
+            let service = service.clone();
+            // Spawn task to serve connection
+            tokio::spawn(async move {
+                let builder = match server_kind {
+                    ServerKind::Http => conn::auto::Builder::new(TokioExecutor::new()),
+                    ServerKind::Grpc => conn::auto::Builder::new(TokioExecutor::new()).http2_only(),
+                };
+                if let Err(err) = builder.serve_connection(io, service).await {
+                    error!("connection error: {err}");
+                }
+                debug!("connection dropped: {addr}");
+            });
         }
     });
 
