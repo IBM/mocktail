@@ -1,40 +1,41 @@
 //! Mock request
+use url::Url;
+
 use crate::{body::Body, headers::Headers};
 
 /// Represents a HTTP request.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request {
     pub method: Method,
-    pub path: String,
-    pub query: Option<String>,
+    pub url: Url,
     pub headers: Headers,
     pub body: Body,
 }
 
 impl Request {
-    pub fn new(method: Method, path: impl Into<String>) -> Self {
+    pub fn new(method: Method, url: Url) -> Self {
         Self {
             method,
-            path: path.into(),
-            query: None,
+            url,
             headers: Headers::default(),
             body: Body::default(),
         }
     }
 
     pub fn from_parts(parts: http::request::Parts) -> Self {
+        let url: Url = if parts.uri.authority().is_some() {
+            parts.uri.to_string()
+        } else {
+            format!("http://localhost{}", parts.uri)
+        }
+        .parse()
+        .unwrap();
         Self {
             method: parts.method.into(),
-            path: parts.uri.path().to_string(),
-            query: parts.uri.query().map(Into::into),
+            url,
             headers: parts.headers.into(),
             body: Body::default(),
         }
-    }
-
-    pub fn with_query(mut self, query: impl Into<String>) -> Self {
-        self.query = Some(query.into());
-        self
     }
 
     pub fn with_headers(mut self, headers: Headers) -> Self {
@@ -47,12 +48,24 @@ impl Request {
         self
     }
 
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
     pub fn path(&self) -> &str {
-        &self.path
+        self.url.path()
     }
 
     pub fn query(&self) -> Option<&str> {
-        self.query.as_deref()
+        self.url.query()
+    }
+
+    pub fn query_pairs(&self) -> url::form_urlencoded::Parse<'_> {
+        self.url.query_pairs()
     }
 
     pub fn headers(&self) -> &Headers {
