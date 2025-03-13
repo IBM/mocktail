@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 pub mod body;
 mod headers;
-pub use headers::{HeaderName, HeaderValue, Headers};
+pub use headers::Headers;
 pub mod matchers;
 mod mock;
 pub use mock::Mock;
@@ -16,7 +16,7 @@ pub mod server;
 pub mod prelude {
     pub use crate::{
         body::Body,
-        headers::{HeaderName, HeaderValue, Headers},
+        headers::Headers,
         matchers::*,
         mock::Mock,
         mock_set::MockSet,
