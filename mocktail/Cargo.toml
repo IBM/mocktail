@@ -1,6 +1,6 @@
 [package]
 name = "mocktail"
-version = "0.2.2-alpha"
+version = "0.2.3-alpha"
 edition = "2021"
 authors = ["Dan Clark"]
 description = "HTTP & gRPC server mocking for Rust"
@@ -25,7 +25,7 @@ http-body-util = "0"
 hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0", features = ["tokio", "server-auto"] }
 prost = "0"
-rand = "0"
+rand = "0.9"
 serde = "1"
 serde_json = "1"
 thiserror = "2"
