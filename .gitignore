@@ -3,3 +3,4 @@ debug/
 .DS_Store
 .idea
 .vscode
+Cargo.lock
