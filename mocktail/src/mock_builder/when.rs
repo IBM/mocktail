@@ -47,7 +47,13 @@ impl When {
 
     /// Path.
     pub fn path(self, path: impl Into<String>) -> Self {
-        self.push(matchers::path(path.into()));
+        self.push(matchers::path(path));
+        self
+    }
+
+    /// Path prefix.
+    pub fn path_prefix(self, prefix: impl Into<String>) -> Self {
+        self.push(matchers::path_prefix(prefix));
         self
     }
 
@@ -85,7 +91,28 @@ impl When {
 
     /// Header exists.
     pub fn header_exists(self, name: impl Into<String>) -> Self {
-        self.push(matchers::header_exists(name.into()));
+        self.push(matchers::header_exists(name));
+        self
+    }
+
+    /// Query params.
+    pub fn query_params(
+        self,
+        pairs: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>,
+    ) -> Self {
+        self.push(matchers::query_params(pairs));
+        self
+    }
+
+    /// Query param.
+    pub fn query_param(self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.push(matchers::query_param(key, value));
+        self
+    }
+
+    /// Query param exists.
+    pub fn query_param_exists(self, key: impl Into<String>) -> Self {
+        self.push(matchers::query_param_exists(key));
         self
     }
 

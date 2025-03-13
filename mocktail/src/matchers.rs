@@ -1,7 +1,7 @@
 //! Mock request matchers
 use super::{body::Body, headers::Headers, request::Request};
 use crate::request::Method;
-use std::cmp::Ordering;
+use std::{borrow::Cow, cmp::Ordering};
 
 /// A matcher.
 pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
@@ -74,12 +74,29 @@ impl Matcher for PathMatcher {
         "path"
     }
     fn matches(&self, req: &Request) -> bool {
-        req.path == self.0
+        req.path() == self.0
     }
 }
 
-pub fn path(path: String) -> PathMatcher {
-    PathMatcher(path)
+pub fn path(path: impl Into<String>) -> PathMatcher {
+    PathMatcher(path.into())
+}
+
+/// Path prefix matcher.
+#[derive(Debug)]
+pub struct PathPrefixMatcher(String);
+
+impl Matcher for PathPrefixMatcher {
+    fn name(&self) -> &str {
+        "path_prefix"
+    }
+    fn matches(&self, req: &Request) -> bool {
+        req.path().starts_with(&self.0)
+    }
+}
+
+pub fn path_prefix(prefix: impl Into<String>) -> PathPrefixMatcher {
+    PathPrefixMatcher(prefix.into())
 }
 
 /// Body matcher.
@@ -135,20 +152,19 @@ pub fn headers_exact(headers: Headers) -> HeadersExactMatcher {
 
 /// Header matcher.
 #[derive(Debug)]
-pub struct HeaderMatcher((String, String));
+pub struct HeaderMatcher(String, String);
 
 impl Matcher for HeaderMatcher {
     fn name(&self) -> &str {
         "header"
     }
     fn matches(&self, req: &Request) -> bool {
-        let (name, value) = &self.0;
-        req.headers.contains(name, value)
+        req.headers.contains(&self.0, &self.1)
     }
 }
 
 pub fn header(name: impl Into<String>, value: impl Into<String>) -> HeaderMatcher {
-    HeaderMatcher((name.into(), value.into()))
+    HeaderMatcher(name.into(), value.into())
 }
 
 /// Header exists matcher.
@@ -164,6 +180,68 @@ impl Matcher for HeaderExistsMatcher {
     }
 }
 
-pub fn header_exists(name: String) -> HeaderExistsMatcher {
-    HeaderExistsMatcher(name)
+pub fn header_exists(name: impl Into<String>) -> HeaderExistsMatcher {
+    HeaderExistsMatcher(name.into())
+}
+
+/// Query params matcher.
+#[derive(Debug)]
+pub struct QueryParamsMatcher(Vec<(Cow<'static, str>, Cow<'static, str>)>);
+
+impl Matcher for QueryParamsMatcher {
+    fn name(&self) -> &str {
+        "query_params"
+    }
+
+    fn matches(&self, req: &Request) -> bool {
+        let pairs = req.query_pairs().collect::<Vec<_>>();
+        pairs == self.0
+    }
+}
+
+pub fn query_params(
+    pairs: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>,
+) -> QueryParamsMatcher {
+    let pairs = pairs
+        .into_iter()
+        .map(|(key, value)| (Cow::from(key.into()), Cow::from(value.into())))
+        .collect::<Vec<_>>();
+    QueryParamsMatcher(pairs)
+}
+
+/// Query param matcher.
+#[derive(Debug)]
+pub struct QueryParamMatcher(String, String);
+
+impl Matcher for QueryParamMatcher {
+    fn name(&self) -> &str {
+        "query_param"
+    }
+
+    fn matches(&self, req: &Request) -> bool {
+        req.query_pairs()
+            .any(|(key, value)| key == self.0 && value == self.1)
+    }
+}
+
+pub fn query_param(key: impl Into<String>, value: impl Into<String>) -> QueryParamMatcher {
+    QueryParamMatcher(key.into(), value.into())
+}
+
+/// Query param exists matcher.
+#[derive(Debug)]
+pub struct QueryParamExistsMatcher(String);
+
+impl Matcher for QueryParamExistsMatcher {
+    fn name(&self) -> &str {
+        "query_param_exists"
+    }
+
+    fn matches(&self, req: &Request) -> bool {
+        req.query_pairs().any(|(key, _)| key == self.0)
+    }
+}
+
+pub fn query_param_exists(key: impl Into<String>) -> QueryParamExistsMatcher {
+    QueryParamExistsMatcher(key.into())
 }
