@@ -37,8 +37,6 @@ pub enum Error {
     JsonError(#[from] serde_json::Error),
     #[error("io error: {0}")]
     IoError(#[from] std::io::Error),
-    #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
     #[error("server error: {0}")]
     ServerError(String),
 }

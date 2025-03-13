@@ -13,7 +13,7 @@ anyhow = "1"
 futures = "0"
 mocktail = { path = "../mocktail" }
 http = "1"
-reqwest = { version = "0", features = ["stream", "native-tls-alpn"] }
+reqwest = { version = "0", features = ["stream", "json", "native-tls-alpn"] }
 eventsource-stream = "0"
 tokio-stream = "0"
 test-log = { version = "0", features = ["trace"] }
