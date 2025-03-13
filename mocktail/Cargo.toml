@@ -23,7 +23,7 @@ http = "1"
 http-body = "1"
 http-body-util = "0"
 hyper = { version = "1", features = ["http1", "http2", "server"] }
-hyper-util = { version = "0", features = ["full"] }
+hyper-util = { version = "0", features = ["tokio", "server-auto"] }
 prost = "0"
 rand = "0"
 serde = "1"
