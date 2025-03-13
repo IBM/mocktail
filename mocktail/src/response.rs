@@ -210,6 +210,12 @@ impl PartialEq<StatusCode> for u16 {
     }
 }
 
+impl PartialEq<StatusCode> for http::StatusCode {
+    fn eq(&self, other: &StatusCode) -> bool {
+        *self == other.as_u16()
+    }
+}
+
 impl TryFrom<u16> for StatusCode {
     type Error = Error;
 
