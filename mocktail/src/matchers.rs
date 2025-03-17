@@ -13,6 +13,7 @@ pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
     /// Returns matcher as [`&dyn MatcherCompare`] to compare to another matcher.
     /// This is a workaround for dyn-compatability.
+    #[doc(hidden)]
     fn as_matcher_compare(&self) -> &dyn MatcherCompare;
 }
 
