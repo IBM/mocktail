@@ -4,15 +4,11 @@ use crate::request::Method;
 use std::{any::Any, borrow::Cow, cmp::Ordering};
 
 /// A matcher.
-pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
+pub trait Matcher: std::fmt::Debug + Send + Sync + 'static + AsMatcherEq {
     /// Matcher name.
     fn name(&self) -> &str;
     /// Evaluates a match condition.
     fn matches(&self, req: &Request) -> bool;
-    /// Returns matcher as [`&dyn MatcherEq`] to compare to another matcher.
-    /// This is a workaround for dyn-compatability.
-    #[doc(hidden)]
-    fn as_matcher_eq(&self) -> &dyn MatcherEq;
 }
 
 /// Any matcher.
@@ -25,9 +21,6 @@ impl Matcher for AnyMatcher {
     }
     fn matches(&self, _req: &Request) -> bool {
         true
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -46,9 +39,6 @@ impl Matcher for MethodMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.method == self.0
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn method(method: Method) -> MethodMatcher {
@@ -65,9 +55,6 @@ impl Matcher for PathMatcher {
     }
     fn matches(&self, req: &Request) -> bool {
         req.path() == self.0
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -86,9 +73,6 @@ impl Matcher for PathPrefixMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.path().starts_with(&self.0)
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn path_prefix(prefix: impl Into<String>) -> PathPrefixMatcher {
@@ -105,9 +89,6 @@ impl Matcher for BodyMatcher {
     }
     fn matches(&self, req: &Request) -> bool {
         self.0 == req.body
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -126,9 +107,6 @@ impl Matcher for HeadersMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers.is_superset(&self.0)
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn headers(headers: Headers) -> HeadersMatcher {
@@ -145,9 +123,6 @@ impl Matcher for HeadersExactMatcher {
     }
     fn matches(&self, req: &Request) -> bool {
         req.headers == self.0
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -166,9 +141,6 @@ impl Matcher for HeaderMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers.contains(&self.0, &self.1)
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn header(name: impl Into<String>, value: impl Into<String>) -> HeaderMatcher {
@@ -185,9 +157,6 @@ impl Matcher for HeaderExistsMatcher {
     }
     fn matches(&self, req: &Request) -> bool {
         req.headers.contains_name(&self.0)
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -206,9 +175,6 @@ impl Matcher for QueryParamsMatcher {
     fn matches(&self, req: &Request) -> bool {
         let pairs = req.query_pairs().collect::<Vec<_>>();
         pairs == self.0
-    }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
     }
 }
 
@@ -234,9 +200,6 @@ impl Matcher for QueryParamMatcher {
         req.query_pairs()
             .any(|(key, value)| key == self.0 && value == self.1)
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn query_param(key: impl Into<String>, value: impl Into<String>) -> QueryParamMatcher {
@@ -254,13 +217,24 @@ impl Matcher for QueryParamExistsMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.query_pairs().any(|(key, _)| key == self.0)
     }
-    fn as_matcher_eq(&self) -> &dyn MatcherEq {
-        self
-    }
 }
 
 pub fn query_param_exists(key: impl Into<String>) -> QueryParamExistsMatcher {
     QueryParamExistsMatcher(key.into())
+}
+
+#[doc(hidden)]
+pub trait AsMatcherEq {
+    /// Returns matcher as [`&dyn MatcherEq`] to compare to another matcher.
+    /// This is a workaround for dyn-compatability.
+    fn as_matcher_eq(&self) -> &dyn MatcherEq;
+}
+
+/// Implements [`AsMatcherEq`] for all matchers.
+impl<T: Matcher + PartialEq + PartialOrd> AsMatcherEq for T {
+    fn as_matcher_eq(&self) -> &dyn MatcherEq {
+        self
+    }
 }
 
 #[doc(hidden)]
