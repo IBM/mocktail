@@ -79,7 +79,7 @@ impl Request {
 
 /// Represents a HTTP method.
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Method {
     #[default]
     GET,

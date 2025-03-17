@@ -3,7 +3,7 @@ use std::collections::{vec_deque, VecDeque};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BufList {
     bufs: VecDeque<Bytes>,
 }

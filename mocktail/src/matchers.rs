@@ -1,7 +1,7 @@
 //! Mock request matchers
 use super::{body::Body, headers::Headers, request::Request};
 use crate::request::Method;
-use std::{borrow::Cow, cmp::Ordering};
+use std::{any::Any, borrow::Cow, cmp::Ordering};
 
 /// A matcher.
 pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
@@ -9,30 +9,15 @@ pub trait Matcher: std::fmt::Debug + Send + Sync + 'static {
     fn name(&self) -> &str;
     /// Evaluates a match condition.
     fn matches(&self, req: &Request) -> bool;
-}
-
-impl PartialEq for dyn Matcher {
-    fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
-    }
-}
-
-impl Eq for dyn Matcher {}
-
-impl PartialOrd for dyn Matcher {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for dyn Matcher {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.name().cmp(other.name())
-    }
+    /// Downcasts matcher to [`Any`].
+    fn as_any(&self) -> &dyn Any;
+    /// Returns matcher as [`&dyn MatcherCompare`] to compare to another matcher.
+    /// This is a workaround for dyn-compatability.
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare;
 }
 
 /// Any matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct AnyMatcher;
 
 impl Matcher for AnyMatcher {
@@ -42,6 +27,13 @@ impl Matcher for AnyMatcher {
     fn matches(&self, _req: &Request) -> bool {
         true
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn any() -> AnyMatcher {
@@ -49,7 +41,7 @@ pub fn any() -> AnyMatcher {
 }
 
 /// HTTP method matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct MethodMatcher(Method);
 
 impl Matcher for MethodMatcher {
@@ -59,6 +51,12 @@ impl Matcher for MethodMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.method == self.0
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn method(method: Method) -> MethodMatcher {
@@ -66,7 +64,7 @@ pub fn method(method: Method) -> MethodMatcher {
 }
 
 /// Path matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct PathMatcher(String);
 
 impl Matcher for PathMatcher {
@@ -76,6 +74,12 @@ impl Matcher for PathMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.path() == self.0
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn path(path: impl Into<String>) -> PathMatcher {
@@ -83,7 +87,7 @@ pub fn path(path: impl Into<String>) -> PathMatcher {
 }
 
 /// Path prefix matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct PathPrefixMatcher(String);
 
 impl Matcher for PathPrefixMatcher {
@@ -93,6 +97,12 @@ impl Matcher for PathPrefixMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.path().starts_with(&self.0)
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn path_prefix(prefix: impl Into<String>) -> PathPrefixMatcher {
@@ -100,7 +110,7 @@ pub fn path_prefix(prefix: impl Into<String>) -> PathPrefixMatcher {
 }
 
 /// Body matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct BodyMatcher(Body);
 
 impl Matcher for BodyMatcher {
@@ -110,6 +120,12 @@ impl Matcher for BodyMatcher {
     fn matches(&self, req: &Request) -> bool {
         self.0 == req.body
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn body(body: Body) -> BodyMatcher {
@@ -117,7 +133,7 @@ pub fn body(body: Body) -> BodyMatcher {
 }
 
 /// Headers matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct HeadersMatcher(Headers);
 
 impl Matcher for HeadersMatcher {
@@ -127,6 +143,12 @@ impl Matcher for HeadersMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers.is_superset(&self.0)
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn headers(headers: Headers) -> HeadersMatcher {
@@ -134,7 +156,7 @@ pub fn headers(headers: Headers) -> HeadersMatcher {
 }
 
 /// Headers exact matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct HeadersExactMatcher(Headers);
 
 impl Matcher for HeadersExactMatcher {
@@ -144,6 +166,12 @@ impl Matcher for HeadersExactMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers == self.0
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn headers_exact(headers: Headers) -> HeadersExactMatcher {
@@ -151,7 +179,7 @@ pub fn headers_exact(headers: Headers) -> HeadersExactMatcher {
 }
 
 /// Header matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct HeaderMatcher(String, String);
 
 impl Matcher for HeaderMatcher {
@@ -161,6 +189,12 @@ impl Matcher for HeaderMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers.contains(&self.0, &self.1)
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn header(name: impl Into<String>, value: impl Into<String>) -> HeaderMatcher {
@@ -168,7 +202,7 @@ pub fn header(name: impl Into<String>, value: impl Into<String>) -> HeaderMatche
 }
 
 /// Header exists matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct HeaderExistsMatcher(String);
 
 impl Matcher for HeaderExistsMatcher {
@@ -178,6 +212,12 @@ impl Matcher for HeaderExistsMatcher {
     fn matches(&self, req: &Request) -> bool {
         req.headers.contains_name(&self.0)
     }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
+    }
 }
 
 pub fn header_exists(name: impl Into<String>) -> HeaderExistsMatcher {
@@ -185,17 +225,22 @@ pub fn header_exists(name: impl Into<String>) -> HeaderExistsMatcher {
 }
 
 /// Query params matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct QueryParamsMatcher(Vec<(Cow<'static, str>, Cow<'static, str>)>);
 
 impl Matcher for QueryParamsMatcher {
     fn name(&self) -> &str {
         "query_params"
     }
-
     fn matches(&self, req: &Request) -> bool {
         let pairs = req.query_pairs().collect::<Vec<_>>();
         pairs == self.0
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
     }
 }
 
@@ -210,17 +255,22 @@ pub fn query_params(
 }
 
 /// Query param matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct QueryParamMatcher(String, String);
 
 impl Matcher for QueryParamMatcher {
     fn name(&self) -> &str {
         "query_param"
     }
-
     fn matches(&self, req: &Request) -> bool {
         req.query_pairs()
             .any(|(key, value)| key == self.0 && value == self.1)
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
     }
 }
 
@@ -229,19 +279,84 @@ pub fn query_param(key: impl Into<String>, value: impl Into<String>) -> QueryPar
 }
 
 /// Query param exists matcher.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct QueryParamExistsMatcher(String);
 
 impl Matcher for QueryParamExistsMatcher {
     fn name(&self) -> &str {
         "query_param_exists"
     }
-
     fn matches(&self, req: &Request) -> bool {
         req.query_pairs().any(|(key, _)| key == self.0)
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_matcher_compare(&self) -> &dyn MatcherCompare {
+        self
     }
 }
 
 pub fn query_param_exists(key: impl Into<String>) -> QueryParamExistsMatcher {
     QueryParamExistsMatcher(key.into())
+}
+
+#[doc(hidden)]
+pub trait MatcherCompare: Matcher {
+    fn matcher_eq(&self, other: &dyn MatcherCompare) -> bool;
+    fn matcher_partial_cmp(&self, other: &dyn MatcherCompare) -> Option<Ordering>;
+}
+
+/// Implements [`MatcherCompare`] for all matchers.
+impl<T: Matcher + PartialEq + PartialOrd> MatcherCompare for T {
+    fn matcher_eq(&self, other: &dyn MatcherCompare) -> bool {
+        other.as_any().downcast_ref::<Self>() == Some(self)
+    }
+    fn matcher_partial_cmp(&self, other: &dyn MatcherCompare) -> Option<Ordering> {
+        other
+            .as_any()
+            .downcast_ref::<Self>()
+            .and_then(|other| self.partial_cmp(other))
+    }
+}
+
+impl PartialEq<dyn MatcherCompare> for dyn MatcherCompare {
+    fn eq(&self, other: &dyn MatcherCompare) -> bool {
+        self.matcher_eq(other)
+    }
+}
+
+impl Eq for dyn MatcherCompare {}
+
+impl PartialOrd<dyn MatcherCompare> for dyn MatcherCompare {
+    fn partial_cmp(&self, other: &dyn MatcherCompare) -> Option<Ordering> {
+        self.matcher_partial_cmp(other)
+    }
+}
+
+impl PartialEq for dyn Matcher {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_matcher_compare() == other.as_matcher_compare()
+    }
+}
+
+impl Eq for dyn Matcher {}
+
+impl PartialOrd for dyn Matcher {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for dyn Matcher {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let compare = self
+            .as_matcher_compare()
+            .matcher_partial_cmp(other.as_matcher_compare());
+        if let Some(ordering) = compare {
+            ordering
+        } else {
+            self.name().cmp(other.name())
+        }
+    }
 }

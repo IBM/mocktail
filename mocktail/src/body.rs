@@ -93,6 +93,20 @@ impl PartialEq for Body {
     }
 }
 
+impl Eq for Body {}
+
+impl PartialOrd for Body {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Body {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.bufs.cmp(&other.bufs)
+    }
+}
+
 impl Stream for Body {
     type Item = Bytes;
 

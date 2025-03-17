@@ -105,3 +105,22 @@ impl FromIterator<Mock> for MockSet {
         Self(iter.into_iter().collect())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_builder() {
+        let mut mocks = MockSet::new();
+        mocks.mock(|when, then| {
+            when.post().path("/hello").text("hello");
+            then.text("hello!");
+        });
+        mocks.mock(|when, then| {
+            when.post().path("/hello").text("hey");
+            then.text("hello!");
+        });
+        assert_eq!(mocks.len(), 2);
+    }
+}
