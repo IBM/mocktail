@@ -1,6 +1,6 @@
 //! Headers
 /// Represents HTTP headers.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Headers(Vec<(HeaderName, HeaderValue)>);
 
 impl Headers {
@@ -147,7 +147,7 @@ impl From<Headers> for tonic::metadata::MetadataMap {
 }
 
 /// Represents a HTTP header name.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HeaderName(String);
 
 impl std::ops::Deref for HeaderName {
@@ -213,7 +213,7 @@ impl From<&http::HeaderName> for HeaderName {
 }
 
 /// Represents a HTTP header value.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HeaderValue(String);
 
 impl std::ops::Deref for HeaderValue {
