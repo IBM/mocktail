@@ -8,7 +8,7 @@ use bytes::{Bytes, BytesMut};
 use futures::{future::BoxFuture, StreamExt};
 use http::HeaderMap;
 use http_body::{Body as _, Frame};
-use http_body_util::{BodyExt, Full, StreamBody};
+use http_body_util::{BodyExt, Empty, Full, StreamBody};
 use hyper::{body::Incoming, service::Service};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -17,6 +17,14 @@ use tracing::debug;
 use crate::{mock_set::MockSet, request::Request};
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
+
+const ALLOWED_METHODS: [http::Method; 5] = [
+    http::Method::GET,
+    http::Method::POST,
+    http::Method::PUT,
+    http::Method::HEAD,
+    http::Method::DELETE,
+];
 
 /// Mock HTTP service.
 #[derive(Debug, Clone)]
@@ -39,6 +47,15 @@ impl Service<http::Request<Incoming>> for HttpMockService {
         let mocks = self.mocks.clone();
         let fut = async move {
             debug!(?req, "handling request");
+
+            if !ALLOWED_METHODS.contains(req.method()) {
+                return Ok(http::Response::builder()
+                    .status(http::StatusCode::METHOD_NOT_ALLOWED)
+                    .header("Allow", "GET, POST, PUT, HEAD, DELETE")
+                    .body(empty())
+                    .unwrap());
+            }
+
             let (parts, mut body) = req.into_parts();
 
             // Get initial data frame
@@ -143,4 +160,8 @@ impl Service<http::Request<Incoming>> for HttpMockService {
 
 fn full(data: Bytes) -> BoxBody {
     Full::new(data).map_err(|err| match err {}).boxed()
+}
+
+fn empty() -> BoxBody {
+    Empty::new().map_err(|err| match err {}).boxed()
 }

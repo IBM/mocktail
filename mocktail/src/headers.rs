@@ -70,14 +70,6 @@ impl Headers {
         other.is_subset(self)
     }
 
-    /// Returns true if the headers contains a `content-type` header equal to value.
-    pub fn has_content_type(&self, value: &str) -> bool {
-        if let Some(content_type) = self.get("content-type") {
-            return content_type.starts_with(value);
-        }
-        false
-    }
-
     /// Returns an iterator over the headers.
     pub fn iter(&self) -> std::slice::Iter<'_, (HeaderName, HeaderValue)> {
         self.0.iter()

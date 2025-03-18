@@ -195,7 +195,7 @@ where
                     ServerKind::Grpc => conn::auto::Builder::new(TokioExecutor::new()).http2_only(),
                 };
                 if let Err(err) = builder.serve_connection(io, service).await {
-                    error!("connection error: {err}");
+                    debug!("connection error: {err}");
                 }
                 debug!("connection dropped: {addr}");
             });

@@ -15,7 +15,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::body::BoxBody;
 use tracing::debug;
 
-use crate::{headers::Headers, mock_set::MockSet, request::Request};
+use crate::{mock_set::MockSet, request::Request};
 
 /// Mock gRPC service.
 #[derive(Debug, Clone)]
@@ -38,10 +38,27 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
         let mocks = self.mocks.clone();
         let fut = async move {
             debug!(?req, "handling request");
-            let headers: Headers = req.headers().into();
-            if !headers.has_content_type("application/grpc") {
-                return Ok(invalid_content_type_response());
+
+            if req.method() != http::Method::POST {
+                return Ok(http::Response::builder()
+                    .status(http::StatusCode::METHOD_NOT_ALLOWED)
+                    .header("Allow", "POST")
+                    .body(tonic::body::empty_body())
+                    .unwrap());
             }
+            let content_type = req.headers().get("content-type");
+            if !content_type.is_some_and(|v| {
+                v.to_str()
+                    .unwrap_or_default()
+                    .starts_with("application/grpc")
+            }) {
+                return Ok(http::Response::builder()
+                    .status(http::StatusCode::UNSUPPORTED_MEDIA_TYPE)
+                    .header("Accept-Post", "application/grpc")
+                    .body(tonic::body::empty_body())
+                    .unwrap());
+            }
+
             let (parts, body) = req.into_parts();
             let mut stream = body.into_data_stream();
 
@@ -104,18 +121,6 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
         };
         Box::pin(fut)
     }
-}
-
-fn invalid_content_type_response() -> http::Response<BoxBody> {
-    http::Response::builder()
-        .header("content-type", "application/grpc")
-        .header("grpc-status", tonic::Code::InvalidArgument as i32)
-        .header(
-            "grpc-message",
-            "invalid content-type: expected `application/grpc`",
-        )
-        .body(tonic::body::empty_body())
-        .unwrap()
 }
 
 fn mock_not_found_trailer() -> HeaderMap {
