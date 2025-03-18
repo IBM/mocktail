@@ -23,7 +23,7 @@ A **minimal** crate for mocking HTTP and gRPC servers in Rust, with native suppo
 1. Add `mocktail` to `Cargo.toml` as a development dependency:
     ```toml
     [dev-dependencies]
-    mocktail = { git = "https://github.com/IBM/mocktail.git", version = "0.2.3-alpha" }
+    mocktail = { git = "https://github.com/IBM/mocktail.git", version = "0.2.4-alpha" }
     ```
 
 2. For now, see [examples](/mocktail-tests/tests/examples) in the `mocktail-tests` crate. Additional documentation coming soon.
