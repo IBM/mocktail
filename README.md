@@ -4,6 +4,7 @@ mocktail is a **minimal** crate for mocking HTTP and gRPC servers in Rust, with 
 
 [![Crates.io](https://img.shields.io/crates/v/mocktail)](https://crates.io/crates/mocktail)
 [![Documentation](https://docs.rs/mocktail/badge.svg)](https://docs.rs/mocktail)
+[![Book](https://img.shields.io/static/v1?label=mocktail&message=user-guide&color=153292)](https://ibm.github.io/mocktail/)
 [![Crates.io](https://img.shields.io/crates/l/mocktail)](LICENSE)
 
 
