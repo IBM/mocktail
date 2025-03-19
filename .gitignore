@@ -4,3 +4,4 @@ debug/
 .idea
 .vscode
 Cargo.lock
+book/book

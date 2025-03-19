@@ -1,0 +1,15 @@
+[book]
+title = "mocktail"
+language = "en"
+multilingual = false
+src = "src"
+
+[output.html]
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/IBM/mocktail/book"
+
+[output.html.playground]
+runnable = false
+editable = false
+copyable = true
