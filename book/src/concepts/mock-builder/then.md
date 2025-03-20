@@ -23,5 +23,13 @@
 - `error()`
 - `ok()`
 - `bad_request()`
-- `internal_server_error()`
+- `unauthorized()`
+- `forbidden()`
 - `not_found()`
+- `unsupported_media_type()`
+- `unprocessable_content()`
+- `internal_server_error()`
+- `not_implemented()`
+- `bad_gateway()`
+- `service_unavailable()`
+- `gateway_timeout()`

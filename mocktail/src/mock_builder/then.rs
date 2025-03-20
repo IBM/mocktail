@@ -163,6 +163,7 @@ impl Then {
         self
     }
 
+    /// 200 Ok
     pub fn ok(self) -> Self {
         self.update(|r| {
             r.status = StatusCode::OK;
@@ -170,13 +171,9 @@ impl Then {
         self
     }
 
-    pub fn not_found(self) -> Self {
-        self.update(|r| {
-            r.status = StatusCode::NOT_FOUND;
-        });
-        self
-    }
+    // Common client errors
 
+    /// 400 Bad Request
     pub fn bad_request(self) -> Self {
         self.update(|r| {
             r.status = StatusCode::BAD_REQUEST;
@@ -184,9 +181,84 @@ impl Then {
         self
     }
 
+    /// 401 Unauthorized
+    pub fn unauthorized(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::UNAUTHORIZED;
+        });
+        self
+    }
+
+    /// 403 Forbidden
+    pub fn forbidden(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::FORBIDDEN;
+        });
+        self
+    }
+
+    /// 404 Not Found
+    pub fn not_found(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::NOT_FOUND;
+        });
+        self
+    }
+
+    /// 415 Unsupported Media Type
+    pub fn unsupported_media_type(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::UNSUPPORTED_MEDIA_TYPE;
+        });
+        self
+    }
+
+    /// 422 Unprocessable Content
+    pub fn unprocessable_content(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::UNPROCESSABLE_ENTITY;
+        });
+        self
+    }
+
+    // Common server errors
+
+    /// 500 Internal Server Error
     pub fn internal_server_error(self) -> Self {
         self.update(|r| {
             r.status = StatusCode::INTERNAL_SERVER_ERROR;
+        });
+        self
+    }
+
+    /// 501 Not Implemented
+    pub fn not_implemented(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::NOT_IMPLEMENTED;
+        });
+        self
+    }
+
+    /// 502 Bad Gateway
+    pub fn bad_gateway(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::BAD_GATEWAY;
+        });
+        self
+    }
+
+    /// 503 Service Unavailable
+    pub fn service_unavailable(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::SERVICE_UNAVAILABLE;
+        });
+        self
+    }
+
+    /// 504 Gateway Timeout
+    pub fn gateway_timeout(self) -> Self {
+        self.update(|r| {
+            r.status = StatusCode::GATEWAY_TIMEOUT;
         });
         self
     }

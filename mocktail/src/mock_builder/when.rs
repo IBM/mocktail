@@ -213,4 +213,10 @@ impl When {
         self.push(matchers::method(Method::DELETE));
         self
     }
+
+    /// HTTP HEAD method.
+    pub fn head(self) -> Self {
+        self.push(matchers::method(Method::HEAD));
+        self
+    }
 }
