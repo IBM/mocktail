@@ -47,7 +47,7 @@ let mock = Mock::new(|when, then| {
 })
 ```
 #### `text_stream(messages)`
-A text streaming body. `messages` is an iterator of `String` messages.
+A text streaming body. `messages` is an iterator of messages implementing `Into<String>`.
 ```rust
 let mock = Mock::new(|when, then| {
     when.text_stream([
