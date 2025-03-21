@@ -28,7 +28,7 @@ Path prefix.
 Example:
 ```rust
 let mock = Mock::new(|when, then| {
-    when.path("/p");
+    when.path_prefix("/p");
     then.ok();
 })
 ```
