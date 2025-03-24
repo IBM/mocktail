@@ -1,0 +1,37 @@
+name: Run CI checks
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings" # Makes CI fail on compilation/clippy warnings
+
+jobs:
+  ci-checks:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+    - name: "Install fmt nightly"
+      run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
+    - uses: actions/checkout@v4
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+    - name: Build
+      run: cargo build
+    - name: Run formatter
+      run: cargo +nightly fmt --check --all
+    - name: Run linter
+      run: cargo clippy --no-deps --all-targets --all-features
+    - name: Run tests
+      run: cargo test
