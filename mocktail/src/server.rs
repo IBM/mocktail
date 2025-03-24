@@ -1,4 +1,11 @@
 //! Mock server
+use std::{
+    cell::OnceCell,
+    net::{SocketAddr, TcpStream},
+    sync::{Arc, RwLock, RwLockWriteGuard},
+    time::Duration,
+};
+
 use http_body::Body;
 use hyper::{body::Incoming, service::Service};
 use hyper_util::{
@@ -6,12 +13,6 @@ use hyper_util::{
     server::conn,
 };
 use rand::Rng;
-use std::{
-    cell::OnceCell,
-    net::{SocketAddr, TcpStream},
-    sync::{Arc, RwLock, RwLockWriteGuard},
-    time::Duration,
-};
 use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 use url::Url;

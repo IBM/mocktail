@@ -176,7 +176,8 @@ impl StatusCode {
     pub const UPGRADE_REQUIRED: StatusCode = StatusCode(NonZeroU16::new(426).unwrap());
     pub const PRECONDITION_REQUIRED: StatusCode = StatusCode(NonZeroU16::new(428).unwrap());
     pub const TOO_MANY_REQUESTS: StatusCode = StatusCode(NonZeroU16::new(429).unwrap());
-    pub const REQUEST_HEADER_FIELDS_TOO_LARGE: StatusCode = StatusCode(NonZeroU16::new(431).unwrap());
+    pub const REQUEST_HEADER_FIELDS_TOO_LARGE: StatusCode =
+        StatusCode(NonZeroU16::new(431).unwrap());
     pub const UNAVAILABLE_FOR_LEGAL_REASONS: StatusCode = StatusCode(NonZeroU16::new(451).unwrap());
 
     pub const INTERNAL_SERVER_ERROR: StatusCode = StatusCode(NonZeroU16::new(500).unwrap());
@@ -189,7 +190,8 @@ impl StatusCode {
     pub const INSUFFICIENT_STORAGE: StatusCode = StatusCode(NonZeroU16::new(507).unwrap());
     pub const LOOP_DETECTED: StatusCode = StatusCode(NonZeroU16::new(508).unwrap());
     pub const NOT_EXTENDED: StatusCode = StatusCode(NonZeroU16::new(510).unwrap());
-    pub const NETWORK_AUTHENTICATION_REQUIRED: StatusCode = StatusCode(NonZeroU16::new(511).unwrap());
+    pub const NETWORK_AUTHENTICATION_REQUIRED: StatusCode =
+        StatusCode(NonZeroU16::new(511).unwrap());
 }
 
 impl Default for StatusCode {

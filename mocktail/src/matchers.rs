@@ -1,7 +1,8 @@
 //! Mock request matchers
+use std::{any::Any, borrow::Cow, cmp::Ordering};
+
 use super::{body::Body, headers::Headers, request::Request};
 use crate::request::Method;
-use std::{any::Any, borrow::Cow, cmp::Ordering};
 
 /// A matcher.
 pub trait Matcher: std::fmt::Debug + Send + Sync + 'static + AsMatcherEq {
