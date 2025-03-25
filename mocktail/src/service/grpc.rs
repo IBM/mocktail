@@ -12,7 +12,7 @@ use http_body_util::{BodyExt, StreamBody};
 use hyper::{body::Incoming, service::Service};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::body::BoxBody;
+use tonic::body::Body as TonicBody;
 use tracing::debug;
 
 use crate::{mock_set::MockSet, request::Request};
@@ -30,7 +30,7 @@ impl GrpcMockService {
 }
 
 impl Service<http::Request<Incoming>> for GrpcMockService {
-    type Response = http::Response<BoxBody>;
+    type Response = http::Response<tonic::body::Body>;
     type Error = Infallible;
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
@@ -43,7 +43,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
                 return Ok(http::Response::builder()
                     .status(http::StatusCode::METHOD_NOT_ALLOWED)
                     .header("Allow", "POST")
-                    .body(tonic::body::empty_body())
+                    .body(TonicBody::empty())
                     .unwrap());
             }
             let content_type = req.headers().get("content-type");
@@ -55,7 +55,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
                 return Ok(http::Response::builder()
                     .status(http::StatusCode::UNSUPPORTED_MEDIA_TYPE)
                     .header("Accept-Post", "application/grpc")
-                    .body(tonic::body::empty_body())
+                    .body(TonicBody::empty())
                     .unwrap());
             }
 
@@ -66,7 +66,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
             let (response_tx, response_rx) =
                 mpsc::channel::<Result<Frame<Bytes>, tonic::Status>>(32);
             let response_stream = ReceiverStream::new(response_rx);
-            let response_body = BoxBody::new(StreamBody::new(response_stream));
+            let response_body = TonicBody::new(StreamBody::new(response_stream));
             let response = http::Response::builder()
                 .header("content-type", "application/grpc")
                 .body(response_body)
