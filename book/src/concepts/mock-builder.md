@@ -24,6 +24,8 @@ pub struct Mock {
     pub priority: u8, // defaults to 5 (more on this later)
     /// Match counter.
     pub match_count: AtomicUsize,
+    /// Limit on how many times this mock can be matched.
+    pub limit: Option<usize>,
 }
 ```
 
