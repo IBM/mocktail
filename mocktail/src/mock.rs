@@ -86,8 +86,8 @@ impl Mock {
 
     /// Evaluates a request against match conditions.
     pub fn matches(&self, req: &Request) -> bool {
-        if let Some(times) = self.limit {
-            if self.match_count.load(Ordering::Relaxed) >= times {
+        if let Some(limit) = self.limit {
+            if self.match_count.load(Ordering::Relaxed) >= limit {
                 return false;
             }
         }
