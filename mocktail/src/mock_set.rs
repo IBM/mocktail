@@ -3,7 +3,6 @@ use crate::{
     mock::Mock,
     mock_builder::{Then, When},
     request::Request,
-    response::Response,
 };
 
 /// A set of mocks.
@@ -80,13 +79,9 @@ impl MockSet {
         self.0.iter()
     }
 
-    /// Matches a request to a mock response.
-    pub fn match_to_response(&self, request: &Request) -> Option<Response> {
-        self.0
-            .iter()
-            .find(|&mock| mock.matches(request))
-            .map(|mock| mock.response())
-            .cloned()
+    /// Matches a request to a mock.
+    pub fn match_by_request(&self, request: &Request) -> Option<Mock> {
+        self.0.iter().find(|&mock| mock.matches(request)).cloned()
     }
 }
 

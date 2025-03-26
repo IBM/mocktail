@@ -68,10 +68,13 @@ impl Service<http::Request<Incoming>> for HttpMockService {
 
             if body.is_end_stream() {
                 // Process as unary
+
+                // Match request to mock
                 let request = Request::from_parts(parts).with_body(chunk);
-                let response = mocks.read().unwrap().match_to_response(&request);
-                if let Some(response) = response {
+                let mock = mocks.read().unwrap().match_by_request(&request);
+                if let Some(mock) = mock {
                     debug!("mock found, sending response");
+                    let response = mock.response;
                     let mut body = response.body().clone().as_bytes();
                     if response.is_error() {
                         if let Some(message) = response.message() {
@@ -115,13 +118,13 @@ impl Service<http::Request<Incoming>> for HttpMockService {
                         // Add chunk to body buffer
                         buf.extend(chunk);
 
-                        // Match request to mock response
+                        // Match request to mock
                         request = request.with_body(buf.clone().freeze());
-                        let response = mocks.read().unwrap().match_to_response(&request);
-
-                        if let Some(mut response) = response {
+                        let mock = mocks.read().unwrap().match_by_request(&request);
+                        if let Some(mock) = mock {
                             matched = true;
                             debug!("mock found, sending response");
+                            let mut response = mock.response;
                             // Send data frames
                             if !response.body().is_empty() {
                                 while let Some(chunk) = response.body.next().await {
