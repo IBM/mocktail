@@ -38,7 +38,7 @@ impl MockSet {
         self.0.contains(mock)
     }
 
-    /// Builds and inserts a mock.
+    /// Builds and inserts a mock with default options.
     pub fn mock<F>(&mut self, f: F)
     where
         F: FnOnce(When, Then),
@@ -47,8 +47,8 @@ impl MockSet {
         self.insert(mock);
     }
 
-    /// Builds and inserts a mock with explicit priority.
-    pub fn mock_with_priority<F>(&mut self, priority: u8, f: F)
+    /// Builds and inserts a mock with options.
+    pub fn mock_with_options<F>(&mut self, priority: u8, f: F)
     where
         F: FnOnce(When, Then),
     {
