@@ -28,7 +28,7 @@ pub struct Mock {
     pub priority: u8,
     /// Match counter.
     pub match_count: AtomicUsize,
-    /// Limit the times the mock will work.
+    /// Limit on how many times this mock can be matched.
     pub limit: Option<usize>,
 }
 
@@ -59,8 +59,8 @@ impl Mock {
     }
 
     /// Sets the mock limit.
-    pub fn with_limit(mut self, times: usize) -> Self {
-        self.limit = Some(times);
+    pub fn with_limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
         self
     }
 
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_times() {
+    fn test_limit() {
         let mock = Mock::new(|when, then| {
             when.get();
             then.ok();
