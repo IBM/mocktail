@@ -1,8 +1,5 @@
 //! Mock gRPC service
-use std::{
-    convert::Infallible,
-    sync::{Arc, RwLock},
-};
+use std::{convert::Infallible, sync::Arc};
 
 use bytes::{Bytes, BytesMut};
 use futures::{future::BoxFuture, StreamExt};
@@ -15,17 +12,17 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::body::BoxBody;
 use tracing::debug;
 
-use crate::{mock_set::MockSet, request::Request};
+use crate::{request::Request, server::MockServerState};
 
 /// Mock gRPC service.
 #[derive(Debug, Clone)]
 pub struct GrpcMockService {
-    pub mocks: Arc<RwLock<MockSet>>,
+    state: Arc<MockServerState>,
 }
 
 impl GrpcMockService {
-    pub fn new(mocks: Arc<RwLock<MockSet>>) -> Self {
-        Self { mocks }
+    pub fn new(state: Arc<MockServerState>) -> Self {
+        Self { state }
     }
 }
 
@@ -35,7 +32,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn call(&self, req: http::Request<Incoming>) -> Self::Future {
-        let mocks = self.mocks.clone();
+        let state = self.state.clone();
         let fut = async move {
             debug!(?req, "handling request");
 
@@ -85,7 +82,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
 
                     // Match request to mock
                     request = request.with_body(buf.clone().freeze());
-                    let mock = mocks.read().unwrap().match_by_request(&request);
+                    let mock = state.mocks().match_by_request(&request);
                     if let Some(mock) = mock {
                         matched = true;
                         debug!("mock found, sending response");

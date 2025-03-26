@@ -1,8 +1,5 @@
 //! Mock HTTP service
-use std::{
-    convert::Infallible,
-    sync::{Arc, RwLock},
-};
+use std::{convert::Infallible, sync::Arc};
 
 use bytes::{Bytes, BytesMut};
 use futures::{future::BoxFuture, StreamExt};
@@ -14,7 +11,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::debug;
 
-use crate::{mock_set::MockSet, request::Request};
+use crate::{request::Request, server::MockServerState};
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
@@ -29,12 +26,12 @@ const ALLOWED_METHODS: [http::Method; 5] = [
 /// Mock HTTP service.
 #[derive(Debug, Clone)]
 pub struct HttpMockService {
-    pub mocks: Arc<RwLock<MockSet>>,
+    state: Arc<MockServerState>,
 }
 
 impl HttpMockService {
-    pub fn new(mocks: Arc<RwLock<MockSet>>) -> Self {
-        Self { mocks }
+    pub fn new(state: Arc<MockServerState>) -> Self {
+        Self { state }
     }
 }
 
@@ -44,7 +41,7 @@ impl Service<http::Request<Incoming>> for HttpMockService {
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn call(&self, req: http::Request<Incoming>) -> Self::Future {
-        let mocks = self.mocks.clone();
+        let state = self.state.clone();
         let fut = async move {
             debug!(?req, "handling request");
 
@@ -68,10 +65,9 @@ impl Service<http::Request<Incoming>> for HttpMockService {
 
             if body.is_end_stream() {
                 // Process as unary
-
                 // Match request to mock
                 let request = Request::from_parts(parts).with_body(chunk);
-                let mock = mocks.read().unwrap().match_by_request(&request);
+                let mock = state.mocks().match_by_request(&request);
                 if let Some(mock) = mock {
                     debug!("mock found, sending response");
                     let response = mock.response;
@@ -120,7 +116,7 @@ impl Service<http::Request<Incoming>> for HttpMockService {
 
                         // Match request to mock
                         request = request.with_body(buf.clone().freeze());
-                        let mock = mocks.read().unwrap().match_by_request(&request);
+                        let mock = state.mocks().match_by_request(&request);
                         if let Some(mock) = mock {
                             matched = true;
                             debug!("mock found, sending response");
