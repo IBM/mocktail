@@ -153,7 +153,8 @@ mod tests {
         let mock = Mock::new(|when, then| {
             when.get();
             then.ok();
-        }).with_limit(2);
+        })
+        .with_limit(2);
         let request = Request::new(Method::GET, "http://localhost/".parse().unwrap());
         assert!(mock.matches(&request));
         assert!(mock.matches(&request));
