@@ -14,12 +14,16 @@ Together, they build a `Mock`, which consists of a set of request match conditio
 
 ```rust
 pub struct Mock {
+    /// Mock ID.
+    pub id: Uuid,
     /// A set of request match conditions.
-    pub matchers: Vec<Box<dyn Matcher>>,
+    pub matchers: Vec<Arc<dyn Matcher>>,
     /// A mock response.
     pub response: Response,
     /// Priority.
     pub priority: u8, // defaults to 5 (more on this later)
+    /// Match counter.
+    pub match_count: AtomicUsize,
 }
 ```
 
