@@ -28,6 +28,8 @@ pub struct Mock {
     pub priority: u8,
     /// Match counter.
     pub match_count: AtomicUsize,
+    /// Limit the times the mock will work.
+    pub limit: Option<usize>,
 }
 
 impl Mock {
@@ -46,12 +48,19 @@ impl Mock {
             response: then.into_inner(),
             priority: DEFAULT_PRIORITY,
             match_count: AtomicUsize::new(0),
+            limit: None,
         }
     }
 
     /// Sets the mock priority.
     pub fn with_priority(mut self, priority: u8) -> Self {
         self.priority = priority;
+        self
+    }
+
+    /// Sets the mock limit.
+    pub fn with_limit(mut self, times: usize) -> Self {
+        self.limit = Some(times);
         self
     }
 
@@ -77,6 +86,11 @@ impl Mock {
 
     /// Evaluates a request against match conditions.
     pub fn matches(&self, req: &Request) -> bool {
+        if let Some(times) = self.limit {
+            if self.match_count.load(Ordering::Relaxed) >= times {
+                return false;
+            }
+        }
         let matched = self.matchers.iter().all(|matcher| matcher.matches(req));
         if matched {
             self.match_count.fetch_add(1, Ordering::Relaxed);
@@ -97,6 +111,7 @@ impl PartialEq for Mock {
             && self.response == other.response
             && self.priority == other.priority
             && self.match_count.load(Ordering::Relaxed) == other.match_count.load(Ordering::Relaxed)
+            && self.limit == other.limit
     }
 }
 
@@ -108,6 +123,7 @@ impl Clone for Mock {
             response: self.response.clone(),
             priority: self.priority,
             match_count: AtomicUsize::new(self.match_count.load(Ordering::Relaxed)),
+            limit: self.limit,
         }
     }
 }
@@ -130,5 +146,17 @@ mod tests {
         assert_eq!(mock.match_count(), 2);
         mock.reset();
         assert_eq!(mock.match_count(), 0);
+    }
+
+    #[test]
+    fn test_times() {
+        let mock = Mock::new(|when, then| {
+            when.get();
+            then.ok();
+        }).with_limit(2);
+        let request = Request::new(Method::GET, "http://localhost/".parse().unwrap());
+        assert!(mock.matches(&request));
+        assert!(mock.matches(&request));
+        assert!(!mock.matches(&request));
     }
 }
