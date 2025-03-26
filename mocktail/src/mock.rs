@@ -1,4 +1,6 @@
 //! Mock
+use std::sync::Arc;
+
 use crate::{
     matchers::Matcher,
     mock_builder::{Then, When},
@@ -9,10 +11,10 @@ use crate::{
 const DEFAULT_PRIORITY: u8 = 5;
 
 /// A mock.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mock {
     /// A set of request match conditions.
-    pub matchers: Vec<Box<dyn Matcher>>,
+    pub matchers: Vec<Arc<dyn Matcher>>,
     /// A mock response.
     pub response: Response,
     /// Priority.
@@ -54,15 +56,5 @@ impl Mock {
     /// Evaluates a request against match conditions.
     pub fn matches(&self, req: &Request) -> bool {
         self.matchers.iter().all(|matcher| matcher.matches(req))
-    }
-}
-
-impl From<(Vec<Box<dyn Matcher>>, Response)> for Mock {
-    fn from(value: (Vec<Box<dyn Matcher>>, Response)) -> Self {
-        Self {
-            matchers: value.0,
-            response: value.1,
-            priority: DEFAULT_PRIORITY,
-        }
     }
 }
