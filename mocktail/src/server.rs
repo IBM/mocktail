@@ -138,11 +138,14 @@ impl MockServer {
     }
 
     /// Builds and inserts a mock with options.
-    pub fn mock_with_options<F>(&mut self, priority: u8, f: F)
+    pub fn mock_with_options<F>(&mut self, priority: u8, limit: Option<usize>, f: F)
     where
         F: FnOnce(When, Then),
     {
-        let mock = Mock::new(f).with_priority(priority);
+        let mut mock = Mock::new(f).with_priority(priority);
+        if let Some(limit) = limit {
+            mock = mock.with_limit(limit);
+        }
         self.state.mocks.write().unwrap().insert(mock);
     }
 }
