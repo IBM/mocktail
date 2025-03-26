@@ -2,7 +2,7 @@
 use std::{
     cell::OnceCell,
     net::{SocketAddr, TcpStream},
-    sync::{Arc, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::Duration,
 };
 
@@ -31,7 +31,7 @@ pub struct MockServer {
     kind: ServerKind,
     addr: OnceCell<SocketAddr>,
     base_url: OnceCell<Url>,
-    mocks: Arc<RwLock<MockSet>>,
+    state: Arc<MockServerState>,
 }
 
 impl MockServer {
@@ -42,7 +42,7 @@ impl MockServer {
             kind: ServerKind::Http,
             addr: OnceCell::new(),
             base_url: OnceCell::new(),
-            mocks: Arc::new(RwLock::new(MockSet::default())),
+            state: Arc::new(MockServerState::default()),
         }
     }
 
@@ -53,8 +53,8 @@ impl MockServer {
     }
 
     /// Sets the server mocks.
-    pub fn with_mocks(mut self, mocks: MockSet) -> Self {
-        self.mocks = Arc::new(RwLock::new(mocks));
+    pub fn with_mocks(self, mocks: MockSet) -> Self {
+        *self.state.mocks.write().unwrap() = mocks;
         self
     }
 
@@ -69,11 +69,11 @@ impl MockServer {
         let listener = TcpListener::bind(&addr).await?;
         match self.kind {
             ServerKind::Http => {
-                let service = HttpMockService::new(self.mocks.clone());
+                let service = HttpMockService::new(self.state.clone());
                 tokio::spawn(run_server(listener, self.kind, service));
             }
             ServerKind::Grpc => {
-                let service = GrpcMockService::new(self.mocks.clone());
+                let service = GrpcMockService::new(self.state.clone());
                 tokio::spawn(run_server(listener, self.kind, service));
             }
         };
@@ -125,25 +125,43 @@ impl MockServer {
     }
 
     pub fn mocks(&self) -> RwLockWriteGuard<'_, MockSet> {
-        self.mocks.write().unwrap()
+        self.state.mocks.write().unwrap()
     }
 
-    /// Builds and inserts a mock.
+    /// Builds and inserts a mock with default options.
     pub fn mock<F>(&mut self, f: F)
     where
         F: FnOnce(When, Then),
     {
         let mock = Mock::new(f);
-        self.mocks().insert(mock);
+        self.state.mocks.write().unwrap().insert(mock);
     }
 
-    /// Builds and inserts a mock with explicit priority.
-    pub fn mock_with_priority<F>(&mut self, priority: u8, f: F)
+    /// Builds and inserts a mock with options.
+    pub fn mock_with_options<F>(&mut self, priority: u8, f: F)
     where
         F: FnOnce(When, Then),
     {
         let mock = Mock::new(f).with_priority(priority);
-        self.mocks().insert(mock);
+        self.state.mocks.write().unwrap().insert(mock);
+    }
+}
+
+/// Mock server state.
+#[derive(Debug, Default)]
+pub struct MockServerState {
+    pub mocks: RwLock<MockSet>,
+}
+
+impl MockServerState {
+    pub fn new(mocks: MockSet) -> Self {
+        Self {
+            mocks: RwLock::new(mocks),
+        }
+    }
+
+    pub fn mocks(&self) -> RwLockReadGuard<'_, MockSet> {
+        self.mocks.read().unwrap()
     }
 }
 

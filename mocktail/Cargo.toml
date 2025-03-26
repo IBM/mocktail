@@ -34,3 +34,4 @@ tokio-stream = "0"
 tonic = "0.12"
 tracing = "0"
 url = "2"
+uuid = { version = "1.16.0", features = ["fast-rng", "v7"] }

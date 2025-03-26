@@ -1,5 +1,5 @@
 //! When
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, rc::Rc, sync::Arc};
 
 use bytes::Bytes;
 
@@ -13,7 +13,7 @@ use crate::{
 
 /// A request match conditions builder.
 #[derive(Default, Clone)]
-pub struct When(Rc<Cell<Vec<Box<dyn Matcher>>>>);
+pub struct When(Rc<Cell<Vec<Arc<dyn Matcher>>>>);
 
 impl When {
     pub fn new() -> Self {
@@ -21,7 +21,7 @@ impl When {
     }
 
     /// Sorts, deduplicates, and returns the inner set of matchers.
-    pub fn into_inner(self) -> Vec<Box<dyn Matcher>> {
+    pub fn into_inner(self) -> Vec<Arc<dyn Matcher>> {
         let mut m = self.0.take();
         m.sort_unstable();
         m.dedup();
@@ -31,7 +31,7 @@ impl When {
     /// Pushes a matcher to the set of matchers.
     fn push(&self, matcher: impl Matcher) {
         let mut m = self.0.take();
-        m.push(Box::new(matcher));
+        m.push(Arc::new(matcher));
         self.0.set(m);
     }
 
