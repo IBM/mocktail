@@ -1,6 +1,8 @@
 //! Mock
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::{
     matchers::Matcher,
     mock_builder::{Then, When},
@@ -13,6 +15,8 @@ const DEFAULT_PRIORITY: u8 = 5;
 /// A mock.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mock {
+    /// Mock ID.
+    pub id: Uuid,
     /// A set of request match conditions.
     pub matchers: Vec<Arc<dyn Matcher>>,
     /// A mock response.
@@ -27,10 +31,12 @@ impl Mock {
     where
         F: FnOnce(When, Then),
     {
+        let id = Uuid::now_v7();
         let when = When::new();
         let then = Then::new();
         f(when.clone(), then.clone());
         Self {
+            id,
             matchers: when.into_inner(),
             response: then.into_inner(),
             priority: DEFAULT_PRIORITY,
@@ -41,6 +47,11 @@ impl Mock {
     pub fn with_priority(mut self, priority: u8) -> Self {
         self.priority = priority;
         self
+    }
+
+    /// Returns the mock ID.
+    pub fn id(&self) -> &Uuid {
+        &self.id
     }
 
     /// Returns the mock response.
