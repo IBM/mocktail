@@ -70,11 +70,28 @@ impl MockServer {
         if self.addr().is_some() {
             return Err(Error::ServerError("already running".into()));
         }
-        let port = find_available_port(&self.config).unwrap();
-        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
+        let mut counter = 0;
+        let mut rng = rand::rng();
+
+        let listener = loop {
+            let port: u16 =
+                rng.random_range(self.config.port_range_start..self.config.port_range_end);
+            let addr = SocketAddr::from((self.config.listen_addr, port));
+            if let Ok(listener) = TcpListener::bind(&addr).await {
+                break listener;
+            }
+
+            if counter == self.config.bind_max_retries {
+                return Err(Error::ServerError("server failed to bind to port".into()));
+            }
+            counter += 1;
+        };
+
+        let addr = listener.local_addr()?;
+        info!("started {} [{}] server on {addr}", self.name(), &self.kind);
         let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
-        info!("starting {} [{}] server on {addr}", self.name(), &self.kind);
-        let listener = TcpListener::bind(&addr).await?;
+
         match self.kind {
             ServerKind::Http => {
                 let service = HttpMockService::new(self.state.clone());
@@ -86,10 +103,15 @@ impl MockServer {
             }
         };
         // Wait for server to become ready
-        for _ in 0..30 {
-            if TcpStream::connect_timeout(&addr, Duration::from_millis(10)).is_ok() {
+        let mut counter = 0;
+        loop {
+            if TcpStream::connect_timeout(&addr, self.config.ready_connect_timeout).is_ok() {
                 break;
             }
+            if counter == self.config.ready_connect_max_retries {
+                return Err(Error::ServerError("server failed to become ready".into()));
+            }
+            counter += 1;
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
         info!("{} server ready", self.name());
@@ -235,11 +257,14 @@ where
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct MockServerConfig {
-    listen_addr: IpAddr,
-    port_range_start: u16,
-    port_range_end: u16,
-    bind_max_retries: usize,
+    pub listen_addr: IpAddr,
+    pub port_range_start: u16,
+    pub port_range_end: u16,
+    pub bind_max_retries: usize,
+    pub ready_connect_max_retries: usize,
+    pub ready_connect_timeout: Duration,
 }
 
 impl MockServerConfig {
@@ -254,20 +279,9 @@ impl Default for MockServerConfig {
             listen_addr: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
             port_range_start: 10000,
             port_range_end: 30000,
-            bind_max_retries: 3,
+            bind_max_retries: 10,
+            ready_connect_max_retries: 30,
+            ready_connect_timeout: Duration::from_millis(10),
         }
     }
-}
-
-fn find_available_port(config: &MockServerConfig) -> Option<u16> {
-    let mut rng = rand::rng();
-    let mut count = 0;
-    while count < config.bind_max_retries {
-        let port: u16 = rng.random_range(config.port_range_start..config.port_range_end);
-        if std::net::TcpListener::bind((config.listen_addr, port)).is_ok() {
-            return Some(port);
-        }
-        count += 1;
-    }
-    None
 }
