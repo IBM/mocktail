@@ -242,6 +242,12 @@ pub struct MockServerConfig {
     bind_max_retries: usize,
 }
 
+impl MockServerConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl Default for MockServerConfig {
     fn default() -> Self {
         Self {
