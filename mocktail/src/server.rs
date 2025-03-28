@@ -246,8 +246,8 @@ impl Default for MockServerConfig {
     fn default() -> Self {
         Self {
             listen_addr: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            port_range_start: 40000,
-            port_range_end: 60000,
+            port_range_start: 10000,
+            port_range_end: 30000,
             bind_max_retries: 3,
         }
     }
