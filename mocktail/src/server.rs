@@ -1,7 +1,7 @@
 //! Mock server
 use std::{
     cell::OnceCell,
-    net::{SocketAddr, TcpStream},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::Duration,
 };
@@ -32,6 +32,7 @@ pub struct MockServer {
     addr: OnceCell<SocketAddr>,
     base_url: OnceCell<Url>,
     state: Arc<MockServerState>,
+    config: MockServerConfig,
 }
 
 impl MockServer {
@@ -43,6 +44,7 @@ impl MockServer {
             addr: OnceCell::new(),
             base_url: OnceCell::new(),
             state: Arc::new(MockServerState::default()),
+            config: MockServerConfig::default(),
         }
     }
 
@@ -58,11 +60,17 @@ impl MockServer {
         self
     }
 
+    /// Sets the server configuration.
+    pub fn with_config(mut self, config: MockServerConfig) -> Self {
+        self.config = config;
+        self
+    }
+
     pub async fn start(&self) -> Result<(), Error> {
         if self.addr().is_some() {
             return Err(Error::ServerError("already running".into()));
         }
-        let port = find_available_port().unwrap();
+        let port = find_available_port(&self.config).unwrap();
         let addr = SocketAddr::from(([0, 0, 0, 0], port));
         let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
         info!("starting {} [{}] server on {addr}", self.name(), &self.kind);
@@ -227,16 +235,33 @@ where
     Ok(())
 }
 
-fn find_available_port() -> Option<u16> {
-    let mut rng = rand::rng();
-    loop {
-        let port: u16 = rng.random_range(40000..60000);
-        if port_is_available(port) {
-            return Some(port);
+pub struct MockServerConfig {
+    listen_addr: IpAddr,
+    port_range_start: u16,
+    port_range_end: u16,
+    bind_max_retries: usize,
+}
+
+impl Default for MockServerConfig {
+    fn default() -> Self {
+        Self {
+            listen_addr: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            port_range_start: 40000,
+            port_range_end: 60000,
+            bind_max_retries: 3,
         }
     }
 }
 
-fn port_is_available(port: u16) -> bool {
-    std::net::TcpListener::bind(("0.0.0.0", port)).is_ok()
+fn find_available_port(config: &MockServerConfig) -> Option<u16> {
+    let mut rng = rand::rng();
+    let mut count = 0;
+    while count < config.bind_max_retries {
+        let port: u16 = rng.random_range(config.port_range_start..config.port_range_end);
+        if std::net::TcpListener::bind((config.listen_addr, port)).is_ok() {
+            return Some(port);
+        }
+        count += 1;
+    }
+    None
 }
