@@ -1,7 +1,7 @@
 //! Mock server
 use std::{
     cell::OnceCell,
-    net::{SocketAddr, TcpStream},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::Duration,
 };
@@ -32,6 +32,7 @@ pub struct MockServer {
     addr: OnceCell<SocketAddr>,
     base_url: OnceCell<Url>,
     state: Arc<MockServerState>,
+    config: MockServerConfig,
 }
 
 impl MockServer {
@@ -43,6 +44,7 @@ impl MockServer {
             addr: OnceCell::new(),
             base_url: OnceCell::new(),
             state: Arc::new(MockServerState::default()),
+            config: MockServerConfig::default(),
         }
     }
 
@@ -58,15 +60,38 @@ impl MockServer {
         self
     }
 
+    /// Sets the server configuration.
+    pub fn with_config(mut self, config: MockServerConfig) -> Self {
+        self.config = config;
+        self
+    }
+
     pub async fn start(&self) -> Result<(), Error> {
         if self.addr().is_some() {
             return Err(Error::ServerError("already running".into()));
         }
-        let port = find_available_port().unwrap();
-        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
+        let mut counter = 0;
+        let mut rng = rand::rng();
+
+        let listener = loop {
+            let port: u16 =
+                rng.random_range(self.config.port_range_start..self.config.port_range_end);
+            let addr = SocketAddr::from((self.config.listen_addr, port));
+            if let Ok(listener) = TcpListener::bind(&addr).await {
+                break listener;
+            }
+
+            if counter == self.config.bind_max_retries {
+                return Err(Error::ServerError("server failed to bind to port".into()));
+            }
+            counter += 1;
+        };
+
+        let addr = listener.local_addr()?;
+        info!("started {} [{}] server on {addr}", self.name(), &self.kind);
         let base_url = Url::parse(&format!("http://{}", &addr)).unwrap();
-        info!("starting {} [{}] server on {addr}", self.name(), &self.kind);
-        let listener = TcpListener::bind(&addr).await?;
+
         match self.kind {
             ServerKind::Http => {
                 let service = HttpMockService::new(self.state.clone());
@@ -78,10 +103,15 @@ impl MockServer {
             }
         };
         // Wait for server to become ready
-        for _ in 0..30 {
-            if TcpStream::connect_timeout(&addr, Duration::from_millis(10)).is_ok() {
+        let mut counter = 0;
+        loop {
+            if TcpStream::connect_timeout(&addr, self.config.ready_connect_timeout).is_ok() {
                 break;
             }
+            if counter == self.config.ready_connect_max_retries {
+                return Err(Error::ServerError("server failed to become ready".into()));
+            }
+            counter += 1;
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
         info!("{} server ready", self.name());
@@ -227,16 +257,31 @@ where
     Ok(())
 }
 
-fn find_available_port() -> Option<u16> {
-    let mut rng = rand::rng();
-    loop {
-        let port: u16 = rng.random_range(40000..60000);
-        if port_is_available(port) {
-            return Some(port);
-        }
+#[derive(Debug)]
+pub struct MockServerConfig {
+    pub listen_addr: IpAddr,
+    pub port_range_start: u16,
+    pub port_range_end: u16,
+    pub bind_max_retries: usize,
+    pub ready_connect_max_retries: usize,
+    pub ready_connect_timeout: Duration,
+}
+
+impl MockServerConfig {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
-fn port_is_available(port: u16) -> bool {
-    std::net::TcpListener::bind(("0.0.0.0", port)).is_ok()
+impl Default for MockServerConfig {
+    fn default() -> Self {
+        Self {
+            listen_addr: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            port_range_start: 10000,
+            port_range_end: 30000,
+            bind_max_retries: 10,
+            ready_connect_max_retries: 30,
+            ready_connect_timeout: Duration::from_millis(10),
+        }
+    }
 }
