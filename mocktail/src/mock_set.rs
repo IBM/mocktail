@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// A set of mocks.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct MockSet(Vec<Mock>);
 
 impl MockSet {
