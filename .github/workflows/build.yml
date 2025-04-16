@@ -18,8 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     steps:
-    - name: "Install fmt nightly"
-      run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
     - name: "Install protoc"
       run: |
         echo "protoc version: ${PROTOC_VERSION}"
@@ -39,7 +37,7 @@ jobs:
     - name: Build
       run: cargo build
     - name: Run formatter
-      run: cargo +nightly fmt --check --all
+      run: cargo fmt --check --all
     - name: Run linter
       run: cargo clippy --no-deps --all-targets --all-features
     - name: Run tests
