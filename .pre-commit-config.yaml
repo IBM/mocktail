@@ -1,10 +1,10 @@
 repos:
   - repo: local
     hooks:
-    - id: fmt-nightly
-      name: fmt nightly
-      description: Format files with cargo +nightly fmt.
-      entry: cargo +nightly fmt
+    - id: fmt
+      name: fmt
+      description: Format files.
+      entry: cargo fmt
       language: system
       types: [rust]
       args: ["--"]
