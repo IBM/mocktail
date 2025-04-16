@@ -1,7 +1,7 @@
 //! Mock server
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
-    sync::{Arc, RwLock, OnceLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::Duration,
 };
 
@@ -11,8 +11,8 @@ use hyper_util::{
     rt::{TokioExecutor, TokioIo},
     server::conn,
 };
-use rand::{Rng, SeedableRng};
 use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 use url::Url;
