@@ -1,8 +1,7 @@
 //! Mock server
 use std::{
-    cell::OnceCell,
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::Duration,
 };
 
@@ -12,7 +11,8 @@ use hyper_util::{
     rt::{TokioExecutor, TokioIo},
     server::conn,
 };
-use rand::Rng;
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 use url::Url;
@@ -29,8 +29,8 @@ use crate::{
 pub struct MockServer {
     name: &'static str,
     kind: ServerKind,
-    addr: OnceCell<SocketAddr>,
-    base_url: OnceCell<Url>,
+    addr: OnceLock<SocketAddr>,
+    base_url: OnceLock<Url>,
     state: Arc<MockServerState>,
     config: MockServerConfig,
 }
@@ -41,8 +41,8 @@ impl MockServer {
         Self {
             name,
             kind: ServerKind::Http,
-            addr: OnceCell::new(),
-            base_url: OnceCell::new(),
+            addr: OnceLock::new(),
+            base_url: OnceLock::new(),
             state: Arc::new(MockServerState::default()),
             config: MockServerConfig::default(),
         }
@@ -72,7 +72,7 @@ impl MockServer {
         }
 
         let mut counter = 0;
-        let mut rng = rand::rng();
+        let mut rng = SmallRng::from_os_rng();
 
         let listener = loop {
             let port: u16 =
@@ -283,5 +283,16 @@ impl Default for MockServerConfig {
             ready_connect_max_retries: 30,
             ready_connect_timeout: Duration::from_millis(10),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mock_server_send() {
+        fn is_send<T: Send>() {}
+        is_send::<MockServer>();
     }
 }
