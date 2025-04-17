@@ -25,7 +25,7 @@ mocktail is a **minimal** crate for mocking HTTP and gRPC servers in Rust, with 
 1. Add `mocktail` to `Cargo.toml` as a development dependency:
     ```toml
     [dev-dependencies]
-    mocktail = "0.2.4-alpha"
+    mocktail = "0.2.5-alpha"
     ```
 
 2. Basic usage example:
