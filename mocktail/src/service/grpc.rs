@@ -96,7 +96,8 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
                         }
                         // Send trailers frame
                         let mut trailers = HeaderMap::from(response.headers().clone());
-                        trailers.insert("grpc-status", response.status().as_grpc_i32().into());
+                        trailers
+                            .insert("grpc-status", response.status().as_grpc().to_header_value());
                         if let Some(message) = response.message() {
                             trailers
                                 .insert("grpc-message", HeaderValue::from_str(message).unwrap());
@@ -123,7 +124,7 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
 
 fn mock_not_found_trailer() -> HeaderMap {
     let mut headers = HeaderMap::new();
-    headers.insert("grpc-status", (Code::NotFound as i32).into());
+    headers.insert("grpc-status", Code::NotFound.to_header_value());
     headers.insert("grpc-message", HeaderValue::from_static("mock not found"));
     headers
 }

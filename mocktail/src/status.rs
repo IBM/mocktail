@@ -279,27 +279,28 @@ impl Code {
         }
     }
 
-    // pub fn to_header_value(self) -> HeaderValue {
-    //     match self {
-    //         Code::Ok => HeaderValue::from_static("0"),
-    //         Code::Cancelled => HeaderValue::from_static("1"),
-    //         Code::Unknown => HeaderValue::from_static("2"),
-    //         Code::InvalidArgument => HeaderValue::from_static("3"),
-    //         Code::DeadlineExceeded => HeaderValue::from_static("4"),
-    //         Code::NotFound => HeaderValue::from_static("5"),
-    //         Code::AlreadyExists => HeaderValue::from_static("6"),
-    //         Code::PermissionDenied => HeaderValue::from_static("7"),
-    //         Code::ResourceExhausted => HeaderValue::from_static("8"),
-    //         Code::FailedPrecondition => HeaderValue::from_static("9"),
-    //         Code::Aborted => HeaderValue::from_static("10"),
-    //         Code::OutOfRange => HeaderValue::from_static("11"),
-    //         Code::Unimplemented => HeaderValue::from_static("12"),
-    //         Code::Internal => HeaderValue::from_static("13"),
-    //         Code::Unavailable => HeaderValue::from_static("14"),
-    //         Code::DataLoss => HeaderValue::from_static("15"),
-    //         Code::Unauthenticated => HeaderValue::from_static("16"),
-    //     }
-    // }
+    /// Returns [`http::HeaderValue`] representation.
+    pub fn to_header_value(self) -> http::HeaderValue {
+        match self {
+            Code::Ok => http::HeaderValue::from_static("0"),
+            Code::Cancelled => http::HeaderValue::from_static("1"),
+            Code::Unknown => http::HeaderValue::from_static("2"),
+            Code::InvalidArgument => http::HeaderValue::from_static("3"),
+            Code::DeadlineExceeded => http::HeaderValue::from_static("4"),
+            Code::NotFound => http::HeaderValue::from_static("5"),
+            Code::AlreadyExists => http::HeaderValue::from_static("6"),
+            Code::PermissionDenied => http::HeaderValue::from_static("7"),
+            Code::ResourceExhausted => http::HeaderValue::from_static("8"),
+            Code::FailedPrecondition => http::HeaderValue::from_static("9"),
+            Code::Aborted => http::HeaderValue::from_static("10"),
+            Code::OutOfRange => http::HeaderValue::from_static("11"),
+            Code::Unimplemented => http::HeaderValue::from_static("12"),
+            Code::Internal => http::HeaderValue::from_static("13"),
+            Code::Unavailable => http::HeaderValue::from_static("14"),
+            Code::DataLoss => http::HeaderValue::from_static("15"),
+            Code::Unauthenticated => http::HeaderValue::from_static("16"),
+        }
+    }
 }
 
 impl std::fmt::Display for Code {
