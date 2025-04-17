@@ -6,7 +6,8 @@ use bytes::Bytes;
 use crate::{
     body::Body,
     headers::{HeaderName, HeaderValue, Headers},
-    response::{Response, StatusCode},
+    response::Response,
+    status::StatusCode,
 };
 
 /// A response builder.

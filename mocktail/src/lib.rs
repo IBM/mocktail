@@ -11,8 +11,10 @@ pub use mock_set::MockSet;
 mod request;
 pub use request::{Method, Request};
 mod response;
-pub use response::{Response, StatusCode};
+pub use response::Response;
 pub mod server;
+mod status;
+pub use status::{Code, StatusCode};
 pub mod prelude {
     pub use crate::{
         body::Body,
@@ -21,8 +23,9 @@ pub mod prelude {
         mock::Mock,
         mock_set::MockSet,
         request::{Method, Request},
-        response::{Response, StatusCode},
+        response::Response,
         server::MockServer,
+        status::{Code, StatusCode},
     };
 }
 mod ext;

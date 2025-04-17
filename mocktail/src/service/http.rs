@@ -13,7 +13,8 @@ use tracing::debug;
 
 use crate::{request::Request, server::MockServerState};
 
-type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
+/// A type-erased HTTP body.
+pub type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
 const ALLOWED_METHODS: [http::Method; 5] = [
     http::Method::GET,
@@ -157,10 +158,10 @@ impl Service<http::Request<Incoming>> for HttpMockService {
     }
 }
 
-fn full(data: Bytes) -> BoxBody {
+pub fn full(data: Bytes) -> BoxBody {
     Full::new(data).map_err(|err| match err {}).boxed()
 }
 
-fn empty() -> BoxBody {
+pub fn empty() -> BoxBody {
     Empty::new().map_err(|err| match err {}).boxed()
 }
