@@ -132,12 +132,6 @@ impl From<&http::HeaderMap> for Headers {
     }
 }
 
-impl From<Headers> for tonic::metadata::MetadataMap {
-    fn from(value: Headers) -> Self {
-        tonic::metadata::MetadataMap::from_headers(value.into())
-    }
-}
-
 /// Represents a HTTP header name.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HeaderName(String);
