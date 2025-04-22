@@ -67,6 +67,11 @@ impl When {
     }
 
     /// Headers.
+    ///
+    /// Cannonicalizes passed in header name and values to ensure matching is done in a
+    /// case-insensitive manner as required by [RFC2616][rfc-headers]
+    ///
+    /// [rfc-headers]: https://www.rfc-editor.org/rfc/rfc2616#section-4.2
     pub fn headers<T, U>(self, headers: impl IntoIterator<Item = (T, U)>) -> Self
     where
         T: Into<HeaderName>,
