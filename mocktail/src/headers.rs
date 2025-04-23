@@ -158,13 +158,13 @@ impl PartialEq<str> for HeaderName {
 
 impl From<String> for HeaderName {
     fn from(value: String) -> Self {
-        HeaderName(value)
+        HeaderName(value.to_lowercase())
     }
 }
 
 impl From<&str> for HeaderName {
     fn from(value: &str) -> Self {
-        HeaderName(value.into())
+        HeaderName(value.to_lowercase())
     }
 }
 

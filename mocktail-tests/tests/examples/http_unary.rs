@@ -1,4 +1,5 @@
 use anyhow::Error;
+use http::HeaderMap;
 use mocktail::prelude::*;
 use serde::{Deserialize, Serialize};
 use test_log::test;
@@ -142,6 +143,44 @@ async fn test_any() -> Result<(), Error> {
     assert_eq!(response.status(), http::StatusCode::OK);
     let res = response.text().await?;
     assert_eq!(res, "yo!");
+
+    Ok(())
+}
+
+#[test(tokio::test)]
+async fn test_unary_headers() -> Result<(), Error> {
+    let mut mocks = MockSet::new();
+    mocks.mock(|when, then| {
+        when.get().headers([
+            ("content-type", "application/json"),
+            ("Accept", "application/json, application/binary"),
+        ]);
+        then.text("yo!");
+    });
+
+    let server = MockServer::new("any").with_mocks(mocks);
+    server.start().await?;
+
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert("content-type", "application/json".parse().unwrap());
+    headers.insert(
+        "accept",
+        "application/json, application/binary".parse().unwrap(),
+    );
+    let response = client
+        .get(server.url("/asdf"))
+        .headers(headers)
+        .send()
+        .await?;
+
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let res = response.text().await?;
+    assert_eq!(res, "yo!");
+
+    let response = client.post(server.url("/whatever")).send().await?;
+    assert_eq!(response.status(), http::StatusCode::NOT_FOUND);
 
     Ok(())
 }
