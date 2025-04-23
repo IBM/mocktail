@@ -164,7 +164,7 @@ impl From<String> for HeaderName {
 
 impl From<&str> for HeaderName {
     fn from(value: &str) -> Self {
-        HeaderName(value.to_lowercase().into())
+        HeaderName(value.to_lowercase())
     }
 }
 
