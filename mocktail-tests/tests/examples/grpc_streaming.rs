@@ -26,7 +26,7 @@ async fn test_client_streaming() -> Result<(), Error> {
         });
     });
 
-    let server = MockServer::new("example.Hello").grpc().with_mocks(mocks);
+    let server = MockServer::new_grpc("example.Hello").with_mocks(mocks);
     server.start().await?;
 
     let channel = Channel::from_shared(format!("http://0.0.0.0:{}", server.port().unwrap()))?
@@ -68,7 +68,7 @@ async fn test_server_streaming() -> Result<(), Error> {
         ]);
     });
 
-    let server = MockServer::new("example.Hello").grpc().with_mocks(mocks);
+    let server = MockServer::new_grpc("example.Hello").with_mocks(mocks);
     server.start().await?;
 
     let channel = Channel::from_shared(format!("http://0.0.0.0:{}", server.port().unwrap()))?

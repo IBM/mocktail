@@ -36,7 +36,7 @@ async fn test_json_lines_stream() -> Result<(), Error> {
         ]);
     });
 
-    let server = MockServer::new("hello").with_mocks(mocks);
+    let server = MockServer::new_http("hello").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -76,7 +76,7 @@ async fn test_bytes_stream() -> Result<(), Error> {
         then.bytes_stream(["hello dan!", "hello mateus!"]);
     });
 
-    let server = MockServer::new("hello").with_mocks(mocks);
+    let server = MockServer::new_http("hello").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -120,7 +120,7 @@ async fn test_sse_stream() -> Result<(), Error> {
         ]);
     });
 
-    let server = MockServer::new("sse").with_mocks(mocks);
+    let server = MockServer::new_http("sse").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;

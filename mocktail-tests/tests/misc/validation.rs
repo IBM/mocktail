@@ -4,7 +4,7 @@ use test_log::test;
 
 #[test(tokio::test)]
 async fn test_grpc_service() -> Result<(), Error> {
-    let server = MockServer::new("test").grpc();
+    let server = MockServer::new_grpc("test");
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -30,7 +30,7 @@ async fn test_grpc_service() -> Result<(), Error> {
 
 #[test(tokio::test)]
 async fn test_http_service() -> Result<(), Error> {
-    let server = MockServer::new("test");
+    let server = MockServer::new_http("test");
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;

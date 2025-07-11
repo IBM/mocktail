@@ -30,7 +30,7 @@ async fn test_unary() -> Result<(), Error> {
         then.text("hello!");
     });
 
-    let server = MockServer::new("hello").with_mocks(mocks);
+    let server = MockServer::new_http("hello").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -71,7 +71,7 @@ async fn test_unary_errors() -> Result<(), Error> {
         then.bad_request();
     });
 
-    let server = MockServer::new("hello").with_mocks(mocks);
+    let server = MockServer::new_http("hello").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -129,7 +129,7 @@ async fn test_any() -> Result<(), Error> {
         then.text("yo!");
     });
 
-    let server = MockServer::new("any").with_mocks(mocks);
+    let server = MockServer::new_http("any").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
@@ -158,7 +158,7 @@ async fn test_unary_headers() -> Result<(), Error> {
         then.text("yo!");
     });
 
-    let server = MockServer::new("any").with_mocks(mocks);
+    let server = MockServer::new_http("any").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
