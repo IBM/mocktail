@@ -73,7 +73,7 @@ impl MockServer {
     }
 
     /// Sets the server type to gRPC.
-    #[deprecated(since = "0.2.6-alpha", note = "please use `new_grpc` instead")]
+    #[deprecated(since = "0.3.0", note = "please use `new_grpc` instead")]
     pub fn grpc(mut self) -> Self {
         self.kind = ServerKind::Grpc;
         self

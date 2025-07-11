@@ -3,7 +3,7 @@
 1. Add `mocktail` to `Cargo.toml` as a development dependency:
     ```toml
     [dev-dependencies]
-    mocktail = "0.2.6-alpha"
+    mocktail = "0.3.0"
     ```
 
 2. Basic usage example:

@@ -1,6 +1,6 @@
 [package]
 name = "mocktail"
-version = "0.2.6-alpha"
+version = "0.3.0"
 edition = "2021"
 authors = ["Dan Clark"]
 description = "HTTP & gRPC server mocking for Rust"
