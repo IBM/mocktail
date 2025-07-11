@@ -113,7 +113,7 @@ impl std::str::FromStr for Method {
             "OPTIONS" => Ok(Method::OPTIONS),
             "TRACE" => Ok(Method::TRACE),
             "PATCH" => Ok(Method::PATCH),
-            _ => Err(format!("Invalid HTTP method {}", value)),
+            _ => Err(format!("Invalid HTTP method {value}")),
         }
     }
 }
@@ -132,7 +132,7 @@ impl TryFrom<&str> for Method {
             "OPTIONS" => Ok(Self::OPTIONS),
             "TRACE" => Ok(Self::TRACE),
             "PATCH" => Ok(Self::PATCH),
-            _ => Err(format!("Invalid HTTP method {}", value)),
+            _ => Err(format!("Invalid HTTP method {value}")),
         }
     }
 }
