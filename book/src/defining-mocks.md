@@ -14,14 +14,14 @@ You can define your mocks first, then create a mock server with your mock set:
     // Alternatively, Mock::new() and mocks.insert(mock)
 
     // Create mock server with the mock set
-    let mut server = MockServer::new("example").with_mocks(mocks);
+    let mut server = MockServer::new_http("example").with_mocks(mocks);
     server.run().await?;
 ```
 
 Or, you can create a mock server with a default empty mock set and register mocks directly to the server:
 ```rust
     // Create mock server
-    let mut server = MockServer::new("example");
+    let mut server = MockServer::new_http("example");
     server.run().await?;
 
     // Build and insert a mock to the server's mock set

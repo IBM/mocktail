@@ -36,7 +36,7 @@ pub struct MockServer {
 }
 
 impl MockServer {
-    /// Creates a new [`MockServer`].
+    /// Creates a new HTTP [`MockServer`].
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
@@ -48,7 +48,32 @@ impl MockServer {
         }
     }
 
+    /// Creates a new HTTP [`MockServer`].
+    pub fn new_http(name: &'static str) -> Self {
+        Self {
+            name,
+            kind: ServerKind::Http,
+            addr: OnceLock::new(),
+            base_url: OnceLock::new(),
+            state: Arc::new(MockServerState::default()),
+            config: MockServerConfig::default(),
+        }
+    }
+
+    /// Creates a new gRPC [`MockServer`].
+    pub fn new_grpc(name: &'static str) -> Self {
+        Self {
+            name,
+            kind: ServerKind::Grpc,
+            addr: OnceLock::new(),
+            base_url: OnceLock::new(),
+            state: Arc::new(MockServerState::default()),
+            config: MockServerConfig::default(),
+        }
+    }
+
     /// Sets the server type to gRPC.
+    #[deprecated(since = "0.3.0", note = "please use `new_grpc` instead")]
     pub fn grpc(mut self) -> Self {
         self.kind = ServerKind::Grpc;
         self

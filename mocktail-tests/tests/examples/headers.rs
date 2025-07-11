@@ -26,7 +26,7 @@ async fn test_headers() -> Result<(), Error> {
         then.text("you had the header!");
     });
 
-    let server = MockServer::new("hello").with_mocks(mocks);
+    let server = MockServer::new_http("hello").with_mocks(mocks);
     server.start().await?;
 
     let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
