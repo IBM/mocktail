@@ -33,4 +33,4 @@ tokio = "1"
 tokio-stream = "0"
 tracing = "0"
 url = "2"
-uuid = { version = "1.16.0", features = ["fast-rng", "v7"] }
+uuid = { version = "1.18.0", features = ["fast-rng", "v7"] }
