@@ -184,3 +184,31 @@ async fn test_unary_headers() -> Result<(), Error> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_unary_form_body() -> Result<(), Error> {
+    let mut mocks = MockSet::new();
+    mocks.mock(|when, then| {
+        when.post()
+            .header("content-type", "application/x-www-form-urlencoded")
+            .form(FormBody::new().field("name", "world"));
+        then.text("hello world");
+    });
+
+    let server = MockServer::new_http("form").with_mocks(mocks);
+    server.start().await?;
+
+    let client = reqwest::Client::builder().http2_prior_knowledge().build()?;
+
+    let response = client
+        .post(server.url("/form"))
+        .form(&[("name", "world")])
+        .send()
+        .await?;
+
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let res = response.text().await?;
+    assert_eq!(res, "hello world");
+
+    Ok(())
+}
