@@ -7,14 +7,23 @@ pub struct FormBody {
 }
 
 impl FormBody {
+    /// Creates a new form.
+    pub fn new() -> Self {
+        Self { fields: Vec::new() }
+    }
+
     /// Creates an empty form.
     pub fn empty() -> Self {
         Self::default()
     }
 
     /// Adds a field to the form.
-    pub fn add_field(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        self.fields.push((name.into(), value.into()));
+    pub fn field(self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        let mut fields = self.fields;
+
+        fields.push((name.into(), value.into()));
+
+        Self { fields }
     }
 
     /// Converts the form body to a URL-encoded string.

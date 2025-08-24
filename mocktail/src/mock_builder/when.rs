@@ -67,8 +67,8 @@ impl When {
     }
 
     /// Form Body.
-    pub fn form(self, body: FormBody) -> Self {
-        self.push(matchers::form(body));
+    pub fn form(self, form_body: FormBody) -> Self {
+        self.push(matchers::form(form_body));
         self
     }
 

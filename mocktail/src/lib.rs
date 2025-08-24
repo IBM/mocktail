@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 pub mod body;
+pub mod form;
 mod headers;
 pub use headers::Headers;
 pub mod matchers;
@@ -18,6 +19,7 @@ pub use status::{Code, StatusCode};
 pub mod prelude {
     pub use crate::{
         body::Body,
+        form::FormBody,
         headers::Headers,
         matchers::*,
         mock::Mock,
@@ -30,7 +32,6 @@ pub mod prelude {
 }
 mod ext;
 mod service;
-mod form;
 
 /// Represents errors that can occur while serving mocks.
 #[derive(thiserror::Error, Debug)]
