@@ -2,7 +2,7 @@
 use std::{any::Any, borrow::Cow, cmp::Ordering};
 
 use super::{body::Body, headers::Headers, request::Request};
-use crate::request::Method;
+use crate::{form::FormBody, request::Method};
 
 /// A matcher.
 pub trait Matcher: std::fmt::Debug + Send + Sync + 'static + AsMatcherEq {
@@ -95,6 +95,23 @@ impl Matcher for BodyMatcher {
 
 pub fn body(body: Body) -> BodyMatcher {
     BodyMatcher(body)
+}
+
+/// Form body matcher.
+#[derive(Debug, PartialEq, PartialOrd)]
+pub struct FormMatcher(FormBody);
+
+impl Matcher for FormMatcher {
+    fn name(&self) -> &str {
+        "form_body"
+    }
+    fn matches(&self, req: &Request) -> bool {
+        self.0 == req.body
+    }
+}
+
+pub fn form(body: FormBody) -> FormMatcher {
+    FormMatcher(body)
 }
 
 /// Headers matcher.

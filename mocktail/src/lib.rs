@@ -30,6 +30,7 @@ pub mod prelude {
 }
 mod ext;
 mod service;
+mod form;
 
 /// Represents errors that can occur while serving mocks.
 #[derive(thiserror::Error, Debug)]

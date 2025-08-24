@@ -5,9 +5,9 @@ use bytes::Bytes;
 
 use crate::{
     body::Body,
+    form::FormBody,
     headers::{HeaderName, HeaderValue, Headers},
-    matchers,
-    matchers::Matcher,
+    matchers::{self, Matcher},
     request::Method,
 };
 
@@ -63,6 +63,12 @@ impl When {
     /// Body.
     pub fn body(self, body: Body) -> Self {
         self.push(matchers::body(body));
+        self
+    }
+
+    /// Form Body.
+    pub fn form(self, body: FormBody) -> Self {
+        self.push(matchers::form(body));
         self
     }
 
