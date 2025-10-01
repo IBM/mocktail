@@ -2,7 +2,7 @@
 use std::{collections::vec_deque, convert::Infallible, pin::Pin, task::Poll};
 
 use bytes::{Buf, Bytes};
-use futures::Stream;
+use futures::stream::Stream;
 use http_body::Frame;
 
 use crate::ext::MessageExt;
