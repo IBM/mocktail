@@ -1,6 +1,6 @@
 [package]
 name = "mocktail"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Dan Clark"]
 description = "HTTP & gRPC server mocking for Rust"
@@ -29,7 +29,7 @@ rand = "0.9"
 serde = "1"
 serde_json = "1"
 thiserror = "2"
-tokio = "1"
+tokio = { version = "1", features = ["net"] }
 tokio-stream = "0"
 tracing = "0"
 url = "2"
