@@ -24,6 +24,7 @@ use crate::{
     service::{GrpcMockService, HttpMockService},
     Error,
 };
+use std::sync::{atomic::{AtomicBool, Ordering}, Mutex};
 
 /// A mock server.
 pub struct MockServer {
@@ -203,18 +204,76 @@ impl MockServer {
         }
         self.state.mocks.write().unwrap().insert(mock);
     }
-}
 
+
+
+
+    
+    // --- RECORDING & PLAYBACK FUNCTIONS ---
+    
+
+    
+    pub fn start_recording(&self) {
+        self.state.is_recording.store(true, std::sync::atomic::Ordering::SeqCst);
+        
+        if let Ok(mut reqs) = self.state.recorded_requests.lock() {
+            reqs.clear();
+        }
+    }
+
+    
+    pub fn stop_recording(&self) {
+        self.state.is_recording.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    
+    pub fn is_recording(&self) -> bool {
+        self.state.is_recording.load(std::sync::atomic::Ordering::SeqCst)
+    }
+    
+    pub fn enable_playback(&mut self) {
+        
+        let requests = self.get_recorded_requests();
+        
+        
+        for (path, body) in requests {
+            
+            self.mock(|when, then| {
+                when.path(&path);     // Recorded path match k
+                then.text(&body);     
+            });
+        }
+    }
+
+    
+    pub fn get_recorded_requests(&self) -> Vec<(String, String)> {
+        if let Ok(reqs) = self.state.recorded_requests.lock() {
+            reqs.clone()
+        } else {
+            Vec::new()
+        }
+    }
+
+
+
+
+
+}
 /// Mock server state.
 #[derive(Debug, Default)]
 pub struct MockServerState {
     pub mocks: RwLock<MockSet>,
+    
+    pub is_recording: AtomicBool,
+    pub recorded_requests: Mutex<Vec<(String, String)>>,
 }
 
 impl MockServerState {
     pub fn new(mocks: MockSet) -> Self {
         Self {
             mocks: RwLock::new(mocks),
+            is_recording: AtomicBool::new(false),
+            recorded_requests: Mutex::new(Vec::new()),
         }
     }
 
@@ -222,6 +281,7 @@ impl MockServerState {
         self.mocks.read().unwrap()
     }
 }
+
 
 #[derive(Debug, Clone, Copy)]
 enum ServerKind {
