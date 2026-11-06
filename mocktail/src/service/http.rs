@@ -64,11 +64,34 @@ impl Service<http::Request<Incoming>> for HttpMockService {
             };
             debug!(?chunk, "received chunk");
 
-            if body.is_end_stream() {
+                       if body.is_end_stream() {
                 // Process as unary
                 // Match request to mock
-                let request = Request::from_parts(parts).with_body(chunk);
+                let request = Request::from_parts(parts).with_body(chunk.clone()); // .clone() add karein taake neeche chunk reuse ho sake
+
+                // ==========================================
+                // --- INCOMING REQUEST RECORDING LOGIC ---
+                // ==========================================
+                if state.is_recording.load(std::sync::atomic::Ordering::SeqCst) {
+                    let path = request.path().to_string();
+                    
+                    
+                    let body_str = String::from_utf8(chunk.to_vec())
+                        .unwrap_or_else(|_| String::from(""));
+
+                    if let Ok(mut reqs) = state.recorded_requests.lock() {
+                        reqs.push((path, body_str));
+                    }
+                }
+                // ==========================================
+
                 let mock = state.mocks().match_by_request(&request);
+
+
+
+
+
+
                 if let Some(mock) = mock {
                     debug!("mock found, sending response");
                     let response = mock.response;
