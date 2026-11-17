@@ -1,4 +1,6 @@
 //! Mock response
+use std::time::Duration;
+
 use super::{body::Body, headers::Headers, status::StatusCode};
 
 /// Represents a HTTP response.
@@ -8,6 +10,8 @@ pub struct Response {
     pub headers: Headers,
     pub body: Body,
     pub message: Option<String>,
+    pub delay: Option<Duration>,
+    pub chunk_delay: Option<Duration>,
 }
 
 impl Response {
@@ -17,6 +21,8 @@ impl Response {
             headers: Headers::default(),
             body: body.into(),
             message: None,
+            delay: None,
+            chunk_delay: None,
         }
     }
 
@@ -32,6 +38,16 @@ impl Response {
 
     pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = Some(message.into());
+        self
+    }
+
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = Some(delay);
+        self
+    }
+
+    pub fn with_chunk_delay(mut self, delay: Duration) -> Self {
+        self.chunk_delay = Some(delay);
         self
     }
 
@@ -51,6 +67,14 @@ impl Response {
         self.message.as_deref()
     }
 
+    pub fn delay(&self) -> Option<Duration> {
+        self.delay
+    }
+
+    pub fn chunk_delay(&self) -> Option<Duration> {
+        self.chunk_delay
+    }
+
     pub fn is_ok(&self) -> bool {
         self.status.is_ok()
     }
@@ -67,6 +91,8 @@ impl Default for Response {
             headers: Headers::default(),
             body: Body::default(),
             message: None,
+            delay: None,
+            chunk_delay: None,
         }
     }
 }

@@ -88,9 +88,21 @@ impl Service<http::Request<Incoming>> for GrpcMockService {
                         matched = true;
                         debug!("mock found, sending response");
                         let mut response = mock.response;
+
+                        if let Some(delay) = response.delay() {
+                            tokio::time::sleep(delay).await;
+                        }
+
                         // Send data frames
                         if !response.body().is_empty() {
+                            let mut first = true;
                             while let Some(chunk) = response.body.next().await {
+                                if !first {
+                                    if let Some(chunk_delay) = response.chunk_delay() {
+                                        tokio::time::sleep(chunk_delay).await;
+                                    }
+                                }
+                                first = false;
                                 let _ = response_tx.send(Ok(Frame::data(chunk))).await;
                             }
                         }
