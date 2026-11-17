@@ -71,20 +71,59 @@ impl Service<http::Request<Incoming>> for HttpMockService {
                 let mock = state.mocks().match_by_request(&request);
                 if let Some(mock) = mock {
                     debug!("mock found, sending response");
-                    let response = mock.response;
-                    let mut body = response.body().clone().as_bytes();
-                    if response.is_error() {
-                        if let Some(message) = response.message() {
-                            body = Bytes::copy_from_slice(message.as_bytes());
-                        }
+                    let mut response = mock.response;
+
+                    if let Some(delay) = response.delay() {
+                        tokio::time::sleep(delay).await;
                     }
+
                     let status = response.status().as_http();
-                    let mut res = http::Response::builder()
-                        .status(status)
-                        .body(full(body))
-                        .unwrap();
-                    *res.headers_mut() = response.headers.into();
-                    Ok(res)
+                    let headers: HeaderMap = response.headers.clone().into();
+
+                    if let Some(chunk_delay) = response.chunk_delay() {
+                        let (response_tx, response_rx) =
+                            mpsc::channel::<Result<Frame<Bytes>, hyper::Error>>(32);
+                        let response_stream = ReceiverStream::new(response_rx);
+                        let response_body = BoxBody::new(StreamBody::new(response_stream));
+                        let mut res = http::Response::builder()
+                            .status(status)
+                            .body(response_body)
+                            .unwrap();
+                        *res.headers_mut() = headers;
+
+                        tokio::spawn(async move {
+                            if response.is_error() {
+                                if let Some(message) = response.message() {
+                                    let body = Bytes::copy_from_slice(message.as_bytes());
+                                    let _ = response_tx.send(Ok(Frame::data(body))).await;
+                                }
+                            } else if !response.body().is_empty() {
+                                let mut first = true;
+                                while let Some(chunk) = response.body.next().await {
+                                    if !first {
+                                        tokio::time::sleep(chunk_delay).await;
+                                    }
+                                    first = false;
+                                    let _ = response_tx.send(Ok(Frame::data(chunk))).await;
+                                }
+                            }
+                        });
+
+                        Ok(res)
+                    } else {
+                        let mut body = response.body().clone().as_bytes();
+                        if response.is_error() {
+                            if let Some(message) = response.message() {
+                                body = Bytes::copy_from_slice(message.as_bytes());
+                            }
+                        }
+                        let mut res = http::Response::builder()
+                            .status(status)
+                            .body(full(body))
+                            .unwrap();
+                        *res.headers_mut() = headers;
+                        Ok(res)
+                    }
                 } else {
                     debug!(?request, "no mocks found, sending error");
                     Ok(http::Response::builder()
@@ -122,9 +161,21 @@ impl Service<http::Request<Incoming>> for HttpMockService {
                             matched = true;
                             debug!("mock found, sending response");
                             let mut response = mock.response;
+
+                            if let Some(delay) = response.delay() {
+                                tokio::time::sleep(delay).await;
+                            }
+
                             // Send data frames
                             if !response.body().is_empty() {
+                                let mut first = true;
                                 while let Some(chunk) = response.body.next().await {
+                                    if !first {
+                                        if let Some(chunk_delay) = response.chunk_delay() {
+                                            tokio::time::sleep(chunk_delay).await;
+                                        }
+                                    }
+                                    first = false;
                                     let _ = response_tx.send(Ok(Frame::data(chunk))).await;
                                 }
                             }

@@ -1,5 +1,5 @@
 //! Then
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, rc::Rc, time::Duration};
 
 use bytes::Bytes;
 
@@ -63,6 +63,22 @@ impl Then {
     pub fn message(self, message: impl Into<String>) -> Self {
         self.update(|r| {
             r.message = Some(message.into());
+        });
+        self
+    }
+
+    /// Delay before sending the response.
+    pub fn delay(self, delay: Duration) -> Self {
+        self.update(|r| {
+            r.delay = Some(delay);
+        });
+        self
+    }
+
+    /// Delay between each frame/message in a streaming response.
+    pub fn chunk_delay(self, delay: Duration) -> Self {
+        self.update(|r| {
+            r.chunk_delay = Some(delay);
         });
         self
     }
